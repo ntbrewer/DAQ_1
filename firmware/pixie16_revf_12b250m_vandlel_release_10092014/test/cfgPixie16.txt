@@ -1,0 +1,10 @@
+3  #number of modules
+2  #slot for mod 0
+3
+4
+../firmware/syspixie16_revfvandle_adc250mhz_r31095.bin
+../firmware/fippixie16_revfgeneral_12b250m_r30240.bin
+FPGATrig	#TrigFPGAConfigFile	
+../dsp/Pixie16DSP_revfgeneral_12b250m_r30981.ldr  #DSPCodeFile		
+../configuration/test_ena_cfd_trace_qdc_esums.set
+../dsp/Pixie16DSP_revfgeneral_12b250m_r30981.var  #DSPCodeFile		

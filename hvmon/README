@@ -1,0 +1,11 @@
+To compile hvmon:
+
+gcc -Wall -lcaenhvwrapper -lpthread -ldl -lm -o hvmon hvmon-v0.c
+
+Currently, it uses snmp to contact MPOD IP addresses
+and CAENHVWrapper calls to contact CAEN HV 1527 systems.
+When other CAEN systems are needed, the .conf file and hvptr->
+structure of the mapped memory should gain a caen system flag
+for each channel.
+
+

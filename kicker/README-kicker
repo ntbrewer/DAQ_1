@@ -1,0 +1,30 @@
+
+To compile program kicker:
+   gcc -lm kicker.c -o kicker
+
+To compile program kicker-usb:
+   gcc -lm kicker-usb.c -o kicker-usb
+
+---------------------------------------------------------------------
+For USB-serial on Linux: /dev/ttyUSBx where x=0,1,2,....
+
+Driver for Prolific 2303 USB-Serial in kernel for 2.4.? and higher
+
+Make sure ttyUSBx has rw privlege for others...ie., chmod o+rw ttyUSBx
+- root owns it so root has to do this
+
+(Tested on acq2 June 23, 2011)
+
+---------------------------------------------------------------------
+For USB-serial on Mac 10.6: /dev/tty.usbserial 
+Presumably numbers are added for multiple devices
+
+Driver for Prolific 2303 USB-Serial must be downloaded from Prolific
+website: http://www.prolific.com.tw/eng/downloads.asp?id=31
+
+If problems, check privleges though I did not have to do that as
+I plugged it in, so apple automatically gave me access as owner
+
+(Tested on cjgm June 22, 2011)
+
+---------------------------------------------------------------------

@@ -1,0 +1,401 @@
+
+-----------------------------------------------
+-- discovered via telnet command: get snmp
+-- communities: public for read access only
+-- communities: private for write-read access
+-----------------------------------------------
+IBOOTBAR-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	NOTIFICATION-TYPE, OBJECT-TYPE, MODULE-IDENTITY, 
+	enterprises, Integer32
+		FROM SNMPv2-SMI
+	TEXTUAL-CONVENTION, DisplayString
+		FROM SNMPv2-TC;
+
+dataprobe MODULE-IDENTITY
+	LAST-UPDATED "200601261334Z"
+	ORGANIZATION 
+		""
+	CONTACT-INFO 
+		""
+	DESCRIPTION 
+		"Dataprobe Inc
+		1 Pearl Ct Unit B
+		Allendale NJ, 07401
+		201-934-9944"
+::= { enterprises 1418 }
+
+
+TC1 ::= TEXTUAL-CONVENTION
+	STATUS     current
+	DESCRIPTION 
+		""
+	SYNTAX  Integer32
+
+iBootBarAgent        OBJECT IDENTIFIER ::= { dataprobe 4 }
+
+-- System Information
+
+systemSettings       OBJECT IDENTIFIER ::= { iBootBarAgent 1 }
+info                 OBJECT IDENTIFIER ::= { iBootBarAgent 4 }
+
+deviceName  OBJECT-TYPE
+	SYNTAX     DisplayString
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"This is a 20 character string that contains the name of the iBootBar."
+	::= { systemSettings 1 }
+
+ipMode  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		static (0),
+		arp-ping (1),
+		dhcp (2)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Use this varible to select the method of programming the IP Mode. 
+		Static - Manually entered
+		Arp-Ping - programmed by entering the mac/ip address a computers arp table and pinging.
+		DHCP - get the IP address from a DHCP server automaticly"
+	::= { systemSettings 2 }
+
+ipAddress  OBJECT-TYPE
+	SYNTAX     DisplayString (SIZE(16))
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"The IP Address of the device"
+	::= { systemSettings 3 }
+
+subnetMask  OBJECT-TYPE
+	SYNTAX     DisplayString (SIZE(16))
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { systemSettings 4 }
+
+gateway  OBJECT-TYPE
+	SYNTAX     DisplayString (SIZE(16))
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Address of the default gateway"
+	::= { systemSettings 5 }
+
+webEnable  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		false (0),
+		true (1)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Use this variable to enable/disable the web server"
+	::= { systemSettings 6 }
+
+-- Reset or Power cycle required
+
+webPort  OBJECT-TYPE
+	SYNTAX     Integer32 (0..65535)
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"The port number that the web server will use.  Changing this var will not take effect until 
+		the unit has be reset."
+	::= { systemSettings 7 }
+
+-- reboot required to active this change.
+-- To access the webserver https://<ipAddress>:<webPort>
+
+sslEnable  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		false (0),
+		true (1)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Enable secure sockest layer on the web server."
+	::= { systemSettings 8 }
+
+-- Reboot required to take effect.
+
+telnetEnable  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		false (0),
+		true (1)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Eanlbe the telnet server."
+	::= { systemSettings 9 }
+
+-- Reboot required for this change to take effect
+
+telnetPort  OBJECT-TYPE
+	SYNTAX     Integer32 (0..65535)
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"The port for the telnet server to use."
+	::= { systemSettings 10 }
+
+-- Reboot Required
+
+updateEnable  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		false (0),
+		true (1)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Enable the ability to send updates."
+	::= { systemSettings 11 }
+
+-- This variable sets the cycle time for reboots and power cycles.
+
+cycleTime  OBJECT-TYPE
+	SYNTAX     Integer32
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { systemSettings 12 }
+
+-- This vairable is used to set the delay time between outlets being turned on
+
+delayTime  OBJECT-TYPE
+	SYNTAX     Integer32
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { systemSettings 13 }
+
+snmpManagerTable  OBJECT-TYPE
+	SYNTAX SEQUENCE OF SnmpManagerEntry
+	MAX-ACCESS not-accessible
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { iBootBarAgent 2 }
+
+snmpManagerEntry  OBJECT-TYPE
+	SYNTAX 	SnmpManagerEntry
+	MAX-ACCESS not-accessible
+	STATUS     current
+	DESCRIPTION 
+		""
+	INDEX { snmpManagerIndex }
+	::= { snmpManagerTable 1 }
+
+SnmpManagerEntry ::= SEQUENCE {
+	snmpManagerIndex
+		Integer32,
+	snmpManagerIPAddress
+		DisplayString,
+	snmpManagerEnable
+		INTEGER
+}
+
+snmpManagerIndex  OBJECT-TYPE
+	SYNTAX     Integer32
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		"The table index"
+	::= { snmpManagerEntry 1 }
+
+snmpManagerIPAddress  OBJECT-TYPE
+	SYNTAX     DisplayString (SIZE(16))
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { snmpManagerEntry 2 }
+
+snmpManagerEnable  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		false (0),
+		true (1)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { snmpManagerEntry 3 }
+
+outletTable  OBJECT-TYPE
+	SYNTAX SEQUENCE OF OutletEntry
+	MAX-ACCESS not-accessible
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { iBootBarAgent 3 }
+
+outletEntry  OBJECT-TYPE
+	SYNTAX 	OutletEntry
+	MAX-ACCESS not-accessible
+	STATUS     current
+	DESCRIPTION 
+		""
+	INDEX { outletIndex }
+	::= { outletTable 1 }
+
+OutletEntry ::= SEQUENCE {
+	outletIndex
+		Integer32,
+	outletName
+		OCTET STRING,
+	outletStatus
+		INTEGER,
+	outletCommand
+		INTEGER,
+	outletAPStatus
+		INTEGER
+}
+
+outletIndex  OBJECT-TYPE
+	SYNTAX     Integer32 (0..7)
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { outletEntry 1 }
+
+outletName  OBJECT-TYPE
+	SYNTAX     OCTET STRING (SIZE(20))
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"The name of the outlet upto 20 characters"
+	::= { outletEntry 2 }
+
+outletStatus  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		off (0),
+		on (1),
+		reboot (2),
+		cycle (3),
+		onPending (4),
+		cyclePending (5)
+	}
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { outletEntry 3 }
+
+outletCommand  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		off (0),
+		on (1),
+		cycle (2)
+	}
+	MAX-ACCESS read-write
+	STATUS     current
+	DESCRIPTION 
+		"Use this a a write only variable.  It is used to change the outlets status"
+	::= { outletEntry 4 }
+
+outletAPStatus  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		ok (0),
+		triggered (1)
+	}
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		"AutoPingStatus"
+	::= { outletEntry 5 }
+
+-- The meassured current on line cord 1 multiplyed by 10 .
+
+currentLC1  OBJECT-TYPE
+	SYNTAX     Integer32
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { info 1 }
+
+-- measured current on line cord 2 multiplied by 10
+
+currentLC2  OBJECT-TYPE
+	SYNTAX     Integer32
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { info 2 }
+
+-- The number of line cords 1 or 2
+
+numberOfLineCords  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		oneLineCord (0),
+		twoLineCords (1)
+	}
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { info 3 }
+
+emailStatus  OBJECT-TYPE
+	SYNTAX     INTEGER {
+		emailSuccess (0),
+		emailTimeout (1),
+		emailInvalidResponse (2),
+		emailDNSFail (3),
+		emailAborted (4),
+		emailAuthFailed (5),
+		errorNotAvail (6)
+	}
+	MAX-ACCESS read-only
+	STATUS     current
+	DESCRIPTION 
+		"This is the result of the last email sent."
+	::= { info 4 }
+
+outletChange  NOTIFICATION-TYPE
+	OBJECTS { outletName, 
+		outletStatus }
+	STATUS     current
+	DESCRIPTION 
+		"This trap is sent when ever an outlet changes state.  It contains the name of the outlet "
+	::= { iBootBarAgent 5 }
+
+autoPingFailed  NOTIFICATION-TYPE
+	OBJECTS { outletAPStatus }
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { iBootBarAgent 6 }
+
+currentAlarm  NOTIFICATION-TYPE
+	OBJECTS { currentLC1, 
+		currentLC2 }
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { iBootBarAgent 7 }
+
+emailError  NOTIFICATION-TYPE
+	OBJECTS { emailStatus }
+	STATUS     current
+	DESCRIPTION 
+		""
+	::= { iBootBarAgent 8 }
+END
+
+
+-- This MIB was created using NuDesign Team's Visual MIBuilder (Ver 4.4).
+

@@ -1,0 +1,27 @@
+Event header:
+
+0 - S   => 83 when dumped as integer
+1 - P   => 80
+2 - I   => 73
+3 - L   => 76
+4 - spill number
+5 - spill length - set when entire buffer is complete
+6 - time since epoch
+7 - user data length
+8 - either start of user data or pixie data
+
+if user data:
+9 - user data length (total)
+10 - user data length of specific type e.g. temperature
+11 - id + temp0 in one word
+12 - id + temp1 in one word
+13 - user data length of specific type e.g. silicon detector leakage currents
+14 - id + leak0 in one word
+15 - id + leak1 in one word
+etc
+
+if pixie data:
+9 - pixie data length (from poll) 
+10 - spill number (from poll)
+11 - see pixie user manual for formats
+

@@ -1,0 +1,15 @@
+#
+# email list for LNfill call listings
+# lines are treated as comments after the "#"
+# 10 addresses are possible
+# see bottom for text messaging
+# 
+grosscj@ornl.gov   #carl's email
+#8653869661@messaging.sprintpcs.com  # tony's sms
+#wiarda@me.com     # carl's home email
+#
+# Text messaging email addresses are below
+#
+# AT&T:    10digitmobilenumber@txt.att.net
+# Sprint:  10digitmobilenumber@messaging.sprintpcs.com
+# Verizon: 10digitmobilenumber@vtext.com 

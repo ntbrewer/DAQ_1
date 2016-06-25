@@ -1,0 +1,10 @@
+
+usr2xia:
+make xia2disk
+
+xia2disk-read:
+gcc -Wall -o xia2disk-read xia2disk-read.c
+
+
+
+

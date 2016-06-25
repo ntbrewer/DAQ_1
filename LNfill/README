@@ -1,0 +1,21 @@
+
+lnfill-u6:
+gcc —lm -llabjackusb u6.o -o lnfill-u6 lnfill-u6-v6.c
+
+lnfill-u6-read:
+gcc -o lnfill-u6-read lnfill-u6-read.c
+
+Check if postfix is running:
+sudo postfix status
+
+if not:
+sudo postfix start
+
+(postfix is probably in /etc   and its config file is main.cf)
+
+In order to send mail after upgrading to mountain lion I had to:
+
+sudo mkdir -p /Library/Server/Mail/Data/spool
+sudo /usr/sbin/postfix set-permissions
+sudo /usr/sbin/postfix start
+

@@ -1,0 +1,16 @@
+
+
+kick-u3:
+gcc -Wall -lm -llabjackusb u3.o -o kick-u3 kick-u3.c
+
+kick-u3-read:
+gcc -Wall -o kick-read kick-read.c
+
+kick-mon:
+gcc -Wall `pkg-config --cflags --libs gtk+-3.0` -o kick-mon kick-mon.c
+
+For debugging crashes on apple
+gcc -g -Wall -lm -llabjackusb u3.o -o kick-u3 kick-u3.c
+gcc -g -Wall -o kick-read kick-read.c
+gcc -g -Wall `pkg-config --cflags --libs gtk+-3.0` -o ex-1 ex-1.c
+

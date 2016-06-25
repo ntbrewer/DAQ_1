@@ -1,0 +1,18 @@
+
+
+kelvin:
+gcc -Wall -lm -llabjackusb u3.o -o kelvin-u3 kelvin-u3.c
+
+kelvin-read:
+gcc -Wall -o kelvin-read kelvin-read.c
+
+kelvin-log:
+gcc -Wall -o kelvin-log kelvin-log.c
+
+
+For debugging crashes on apple
+gcc -g -Wall -lm -llabjackusb u3.o -o kelvin-u3 kelvin-u3.c
+gcc -g -Wall -o kelvin-read kelvin-read.c
+gcc -g -Wall -o kelvin-log kelvin-log.c
+
+

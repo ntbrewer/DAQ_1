@@ -1,0 +1,13 @@
+
+usr2xia:
+gcc -Wall -lm  -o usr2xia usr2xia.c
+
+usr2xia-read:
+gcc -Wall -o usr2xia-read usr2xia-read.c
+
+
+For debugging crashes on apple
+gcc -g -Wall -lm  -o usr2xia usr2xia.c
+gcc -g -Wall -o usr2xia-read usr2xia-read.c
+
+

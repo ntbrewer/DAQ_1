@@ -1,0 +1,224 @@
+*/
+#include <unistd.h>  /* UNIX standard function definitions */
+#include <time.h>    /* Time definitions */
+//#include <gtk/gtk.h>
+//#include <cairo.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>  /* String function definitions */
+#include <ctype.h>
+#include <math.h>    /* Math definitions */
+#include <signal.h>  /* Signal interrupt definitions */
+//#include <stddef.h>
+//#include <limits.h>
+//#include <float.h>
+//#include <termios.h> /* POSIX terminal control definitions */
+//#include <errno.h>   /* Error number definitions */
+//#include <fcntl.h>   /* File control definitions */
+#include <sys/types.h> /* for shared memory stuff */
+#include <sys/ipc.h>   /* for shared memory stuff */
+#include <sys/shm.h>   /* for shared memory stuff */
+
+
+  key_t shmKey;
+  int shmid;
+
+  time_t curtime = -1;
+
+  struct dewar {
+    int chanRTD;          // U6 ADC channel for RTD
+    int chanOFLO;         // U6 ADC channel for overflo temperature
+    int chanIbar;         // iBootbar channel
+    int onoff;            // 0=off, 1=on
+    char name[10];        // name of detector; ORNL's are A1, B2, ...
+    double rtd;           // temperature of detector
+    double limit;         // temperature limit of RTD (determines HV shutdown)
+    double oflo;          // temperature of outlet
+    double olimit;        // temperature limit of RTD (determines HV shutdown)
+    double interval;      // time between fills (seconds); usually 6-8 hours
+    double max;           // time to wait before giving up this fill
+    double min;           // time that at least has to go by for complete fill
+    double last;          // last fill duration
+    double next;          // next time to start a fill
+    char status[10];      // current status: COLD, WARM, FILL, ALARM, NO RTD
+
+  };// ge[20];
+  
+  struct manifold {
+    int chanRTD;          // U6 ADC channel for RTD
+    int chanPRES;         // U6 ADC channel for pressure
+    int chanIbar;         // iBootbar channel for tankvalve
+    int chanMani;         // iBootbar channel for manifold
+    double pressure;      // pressure in the manifold line
+    double rtd;           // temperature of manifold
+    double cooltime;      // time to cool down the manifold
+    double timeout;       // time to give up cooling
+    double limit;         // RTD temp when to open to detectors
+    double olimit;        // manifold temp when to open to detectors
+    char status[10];      // current status: COLD, WARM, FILL, ALARM, NO RTD
+  }; // tank; 
+
+  struct lnfill {
+    int shm;                // communication method between the shared memory programs 
+    pid_t pid;                // communication method between the shared memory programs 
+    time_t secRunning;        // time lnfill has been running in seconds
+    int command;              // communication method between the shared memory programs 
+    struct manifold tank;     // merge the two struct to load shared memory segment
+    struct dewar ge[20];
+    char bitstatus[24];       // bit status revealing which outlets are on or off
+    char email[10][40];       // up to 10 email addresses to send warnings
+  } ln;
+
+  struct lnfill *lnptr; 
+
+
+/***********************************************************/
+READ PROGRAM -- WORKS
+/***********************************************************/
+
+void addresses(){
+  int ii=0;
+  char ans[20]="\n";
+
+  //  for (ii=0; ii< 10; ii++){
+  printf ("Stored email addresses:\n");
+  for (ii=0; ii< maxAddress; ii++){
+    printf("%i) %s\n",ii,lnptr->email[ii]);
+  }
+  printf ("Modify addresses ? y/n \n");
+  scanf("%s",ans);
+  if ( strcmp(ans,"y") == 0 || strcmp(ans,"Y") == 0){
+    printf ("Number (<0 for no change)\n");
+    scanf("%i",ii);
+    printf ("Type in each address one at a time (<cr> = no change) \n");
+    strcpy(lnptr->email[ii], ans);
+  }
+  
+  printf ("Add addresses ? y/n \n");
+  scanf("%s",ans);
+  if ( strcmp(ans,"y") == 0 || strcmp(ans,"Y") == 0){
+    printf ("Type in each address one at a time (ends if < 4 characters inputted) \n");
+    for (ii=maxAddress; ii< 10; ii++){
+      scanf("%s",ans);
+      if (strlen(ans) < 4) break;
+      strcpy(lnptr->email[ii], ans);                <================
+    }
+  }
+  maxAddress=ii;
+
+  printf ("Send test emails ? y/n \n");
+  scanf("%s",ans);
+  if ( strcmp(ans,"y") == 0 || strcmp(ans,"Y") == 0) lnptr->command = 61;
+
+  return;
+}
+
+
+/***********************************************************/
+MAIN PROGRAM -- SEG FAULTS!
+/***********************************************************/
+
+void readEmail() {
+  FILE *ifile;
+  char line[200]="\0";
+  char lnfill_conf[200]="/Users/c4g/src/LNfill/include/lnfill-email.txt";   //see define statement in lnfill.h 
+  int ii=0, mm=0, jj=0, kk=0, maxAddress=0;
+  //  char xx[20]="\n";
+  //  struct lnfill xx;
+  char ans[40];
+/*
+   Read configuration file
+*/  
+  if ( ( ifile = fopen (lnfill_conf,"r+") ) == NULL) {
+    printf ("*** File on disk (%s) could not be opened: \n",lnfill_conf);
+    printf ("===> %s \n",lnfill_conf);
+    exit (EXIT_FAILURE);
+  }
+/*
+ Should be positioned to read file
+*/
+  maxAddress=0;
+  while (1) {                   // 1 = true
+    fgets(line,150,ifile);
+    printf("%s",line);
+
+    if (feof(ifile)) {
+      mm = fclose(ifile);
+      break;
+    }
+/*
+   A line from the file is read above and processed below
+*/
+//    sprintf(lnptr->email[0],"Hi Carl");
+    mm = sscanf (line,"%s",ans);
+    jj = strlen(ans);
+
+    if (jj > 3 && strchr(ans,'#') == NULL) {
+
+      printf("ans= %s\n",ans);
+      strcpy(lnptr->email[maxAddress],ans);                <================
+      printf("ans= %s\n",ans);
+
+      //      printf("lnptr = %s\n",lnptr->email);
+      //      strncpy(ln.email[ii], xx.email, jj);
+      //sprintf(ln->email[ii],"%s",xx);
+      //      printf("xx.email= %s\n",xx.email[ii]);
+      //      sscanf(xx.email[ii],"%s",lnptr->email[ii]);
+      //      sprintf(lnptr->email[ii],"%s",xx.email[ii]);
+      //      strcpy( lnptr->email[ii],xx.email[ii]);
+      //      lnptr->email[ii] = &xx.email[ii];
+      //     printf("lnptr= %s\n",lnptr->email[ii]);
+      maxAddress++;
+    }
+  }
+  printf("I don't get here do I?\n");
+  return;
+}
+/***********************************************************/
+ DEBUGGER CLAIMS 
+/***********************************************************/
+
+
+
+
+/Users/c4g/src/LNfill/core: No such file or directory
+(gdb) run
+Starting program: /Users/c4g/src/LNfill/lnfill-u6 
+Reading symbols for shared libraries +++.................................... done
+#
+# email list for LNfill call listings
+# lines are treated as comments after the "#"
+# 10 addresses are possible
+# see bottom for text messaging
+# 
+#wiarda@me.com     # carl's home email
+grosscj@ornl.gov   #carl's email
+ans= grosscj@ornl.gov
+
+Program received signal EXC_BAD_ACCESS, Could not access memory.
+Reason: KERN_INVALID_ADDRESS at address: 0x00000000000009e0
+0x00007fff81af5ee2 in memmove$VARIANT$sse3x ()
+(gdb) where
+#0  0x00007fff81af5ee2 in memmove$VARIANT$sse3x ()
+#1  0x0000000100004ece in __inline_strcpy_chk (__dest=0x9e0 <Address 0x9e0 out of bounds>, __src=0x7fff5fbff890 "grosscj@ornl.gov") at secure/_string.h:94
+#2  0x00000001000086e0 in readEmail () at lnfill-u6-v6.c:1283
+#3  0x0000000100004f9d in main (argc=1, argv=0x7fff5fbffaf8) at lnfill-u6-v6.c:201
+
+
+
+/***********************************************************/
+ PROGRAM's OUTPUT
+/***********************************************************/
+
+cjgm:LNfill c4g$ lnfill-u6     
+#
+# email list for LNfill call listings
+# lines are treated as comments after the "#"
+# 10 addresses are possible
+# see bottom for text messaging
+# 
+#wiarda@me.com     # carl's home email
+grosscj@ornl.gov   #carl's email
+ans= grosscj@ornl.gov
+Segmentation fault: 11
