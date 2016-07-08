@@ -43,6 +43,7 @@ void getHVmpodChan(int ii);
 void setHVmpod(int ii);
 void setVolts(int ii);
 void setRampUp(int ii);
+void setRampDown(int ii);
 void setCurrent(int ii);
 void setOnOff(int ii);
 void getTemp();
@@ -89,7 +90,7 @@ int main(int argc, char **argv){
   int mapHVmon;
   pid_t pid;
   long int p0=0,p1=1;
-  
+  //char cmdRes[140] = "\0";
   printf("Working directory: %s\n",getcwd(path,PATH_MAX+1));
   strcpy(mpod_mib,path);                  // copy path to mpod mib file
   strcat(mpod_mib,"/");                   // add back the ending directory slash
@@ -128,6 +129,9 @@ int main(int argc, char **argv){
   Get the first read of the HV data
 */
   hvptr->com0 = 2;
+  //hvptr->xx[0].onoff = 0;
+  //setOnOff(0);
+  //snmp(1,0, "outputSwitch.u0 i 0",cmdRes);
   //getHVmpod();
   //return 0;
   //getTemp();
@@ -364,8 +368,8 @@ void readConf() {
   char hvmon_conf[200] ="\0";
   int ii=0, mm=0, slot=0, chan=0, onoff=0;
 //int itrip=0, etrip=0;
-  float volts=0.0, current=0.0, ramp=0.0;
-//float trip=0.0, dramp=0.0, svmax=0.0, v1set=0.0, i1set=0.0;
+  float volts=0.0, current=0.0, dramp=0.0, ramp=0.0;
+//float trip=0.0,  svmax=0.0, v1set=0.0, i1set=0.0;
   char ip[30]="\0", name[15]="\0";
 
   //char ipsave[10][30];
@@ -411,8 +415,8 @@ void readConf() {
     ramp = 0.0;
     current = 0.0;
     strcpy (name,"\0");
-    /*dramp = 0.0;
-    svmax = 0.0;
+    dramp = 0.0;
+    /*svmax = 0.0;
     v1set = 0.0;
     i1set = 0.0;
     trip = 0.0;
@@ -422,7 +426,8 @@ void readConf() {
   Process MPOD and other SNMP data
 */    
     if (ii == 0) {
-      mm = sscanf (line,"%i %s %u %u %14s %f %f %f %i",&ii, ip, &chan, &slot, name, &volts, &current, &ramp, &onoff);  // MPOD data
+      mm = sscanf (line,"%i %s %u %u %14s %f %f %f %f %i",&ii, ip, &chan, &slot, name, 
+                        &volts, &current, &ramp, &dramp, &onoff);  // MPOD data
       hvptr->xx[indexMax].type = ii;
       hvptr->xx[indexMax].slot = slot;
       hvptr->xx[indexMax].chan = chan;
@@ -439,6 +444,11 @@ void readConf() {
       {
         hvptr->xx[indexMax].vRamp = ramp;
         setRampUp(indexMax);
+      }
+      if (hvptr->xx[indexMax].downRamp != dramp)
+      {
+        hvptr->xx[indexMax].downRamp = dramp;
+        setRampDown(indexMax);
       }
       if (hvptr->xx[indexMax].iSet != current)
       {
@@ -549,7 +559,7 @@ void getHVmpodChan(int ii) {
     if (hvptr->xx[ii].type == 0) {
       sprintf(cmd,"outputVoltage.u%i",hvptr->xx[ii].chan); 
       snmp(setget,ii,cmd,cmdResult);     //mpodGETguru(cmd, cmdResult);     // read the set voltage
-      printf(cmdResult);
+      //printf(cmdResult);
       hvptr->xx[ii].vSet = readFloat(cmdResult);
 
       sprintf(cmd,"outputMeasurementSenseVoltage.u%i",hvptr->xx[ii].chan);
@@ -573,8 +583,8 @@ void getHVmpodChan(int ii) {
       hvptr->xx[ii].onoff = readOnOff(cmdResult);
 
     }
-  printf("current settings are: V=%f, Vm=%f, Vup=%f, I=%f, Im=%f, 1/0=%i",
-          hvptr->xx[ii].vSet, hvptr->xx[ii].vMeas,hvptr->xx[ii].vRamp, 
+  printf("current settings are: V=%f, Vm=%f, Vup=%f, Vdn=%f, I=%f, Im=%f, 1/0=%i",
+          hvptr->xx[ii].vSet, hvptr->xx[ii].vMeas,hvptr->xx[ii].vRamp, hvptr->xx[ii].downRamp, 
           hvptr->xx[ii].iSet, hvptr->xx[ii].iMeas, hvptr->xx[ii].onoff);
   //printf (".... finished \n");  
   return;
@@ -619,7 +629,7 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult) {
     sprintf (com,"snmpset -v 2c -M /usr/share/snmp/mibs -m +%s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
   } 
   else if (setget == 0){
-    sprintf (com,"snmpget -v 2c -M /usr/share/snmp/mibs -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);
+    sprintf (com,"snmpget -Ov -v 2c -M /usr/share/snmp/mibs -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);
     //sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,hvptr->xx[ii].ip);
     //    sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,MPOD_IP);
   }
@@ -735,7 +745,13 @@ void changeParam(){
     hvptr->com2=20;
 
   case 8:
-    //setRDWn(ii);
+    if (hvptr->xx[ii].vRamp == hvptr->xcom3)
+    {  return; 
+    } else 
+    {
+     hvptr->xx[ii].downRamp = hvptr->xcom3;
+     setRampDown(ii);
+    }
     hvptr->com2=20;
 
   case 9:
@@ -796,29 +812,35 @@ float scan2float () {
 void setVolts(int ii) {
   char cmd[140]="\0", cmdRes[140]="\0";
   sprintf(cmd, "outputVoltage.u%i F %f",  hvptr->xx[ii].chan,hvptr->xx[ii].vSet);
-  snmp(1,indexMax,cmd,cmdRes);   
+  snmp(1,ii,cmd,cmdRes);
+  return;   
 }
 /**************************************************************/ 
 void setRampUp(int ii) {
   char cmd[140]="\0", cmdRes[140]="\0";
   sprintf(cmd, "outputVoltageRiseRate.u%i F %f", hvptr->xx[ii].chan,hvptr->xx[ii].vRamp);
-  snmp(1,indexMax,cmd,cmdRes);    
+  snmp(1,ii,cmd,cmdRes); 
+  return;   
+}
+/**************************************************************/ 
+void setRampDown(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputVoltageFallRate.u%i F %f", hvptr->xx[ii].chan,hvptr->xx[ii].downRamp);
+  snmp(1,ii,cmd,cmdRes); 
+  return;   
 }      
 /**************************************************************/
 void setCurrent(int ii) {
   char cmd[140]="\0", cmdRes[140]="\0";
   sprintf(cmd, "outputCurrent.u%i F %f",hvptr->xx[ii].chan,hvptr->xx[ii].iSet);
-  snmp(1,indexMax,cmd,cmdRes);  
+  snmp(1,ii,cmd,cmdRes);  
+  return;
 }
 /**************************************************************/
 void setOnOff(int ii) {
   char cmd[140]="\0", cmdRes[140]="\0";
-      /*if getTempChan(indexMax) > allowed
-        sprintf(cmd, "outputSwitch.u%i i %i",chan, 0);
-        snmp(1,indexMax,cmd,cmdRes);
-        hvptr->xx[indexMax].onOff = 0; 
-      else */
   sprintf(cmd, "outputSwitch.u%i i %i",hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
-  snmp(1,indexMax,cmd,cmdRes);
+  snmp(1,ii,cmd,cmdRes);
+  return;
 }
 /**************************************************************/
