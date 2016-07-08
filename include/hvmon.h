@@ -23,24 +23,43 @@
 
 
 struct hvchan {
-  int type;
+  int type;       // 0 = MPOD, 1 = CAEN
   char ip[30];    // ip address used for MPOD and CAEN
-  int caenH;    // caen handle
-  short unsigned int chan;
-  short unsigned int slot;
-  float vSet;
-  float vRamp; 
-  float vMeas;
-  float iSet;
-  float iMeas;
+  int caenH;      // caen handle
+  unsigned short int chan;
+  unsigned short int slot;
+  unsigned short int onoff;
+  float iMeas;   // uA
+  float vMeas;   // Volts
+  float vSet;    // Volts
+  float vRamp;   // Volts per seconds
+  float iSet;    // uA
+  float trip;    // seconds
+  float vMax;    // Volts
+  float v1Set;   // Volts
+  float i1Set;   // uA
+  float downRamp;  // Volts per second
+  unsigned int intTrip;  // probably boolean but not sure
+  unsigned int extTrip;  // not boolean since 16 observed in tests
+  char name[15];          // name of channel
+  
 };
 
 struct hvmon {
-  int pid;
-  int com0;
-  int com1;
-  int com2;
+  pid_t pid;
+  int com0;     // commands between programs -> control
+  int com1;     // commands between programs -> detector
+  int com2;     // commands between programs -> function to change
+  int com3;     // commands between programs -> int   value to change
+  float xcom3;  // commands between programs -> float value to change
+  int maxchan;
+  int interval;
+  time_t time0;
+  time_t time1;
   time_t secRunning;
+  unsigned int caenCrate[16];  // 16 = slots, bit pattern = occupied channels
+  unsigned int caenSlot[16];   // 16 = number of channels in each slot
+  float caenTemp[16];
   struct hvchan xx[1000];
 }hv;
 

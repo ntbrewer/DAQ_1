@@ -24,8 +24,8 @@
 //#define USRDATAPATH "data/usrdata.bin"             // com data for control of daq programs
 //#define USRDATASIZE sizeof(usrData)
 
-//#define KELVINDATAPATH "data/kelvin.bin"            // user data for input to xia2disk
-//#define KELVINDATASIZE sizeof(struct thermometer)
+#define KELVINDATAPATH "data/kelvin.bin"            // user data for input to xia2disk
+#define KELVINDATASIZE sizeof(struct thermometer)
 
 #define GELNDATASIZE sizeof(struct lnfill)
 
