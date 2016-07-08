@@ -21,11 +21,11 @@
 #define HVMONDATAPATH "../data/hvmon.bin"            // user data for input to xia2disk
 #define HVMONDATASIZE sizeof(struct hvmon)
 
-
 struct hvchan {
   int type;       // 0 = MPOD, 1 = CAEN
   char ip[30];    // ip address used for MPOD and CAEN
   int caenH;      // caen handle
+  int tOK;
   unsigned short int chan;
   unsigned short int slot;
   unsigned short int onoff;

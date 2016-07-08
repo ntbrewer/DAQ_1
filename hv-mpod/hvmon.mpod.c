@@ -7,6 +7,8 @@
 */
 
 #include "../include/hvmon.h"
+#include "../include/labjackusb.h"
+#include "../include/kelvin.h"
 
 #define MPOD_MIB     "../include/WIENER-CRATE-MIB.txt"
 #define CONFIGFILE   "../include/hvmon.conf"
@@ -46,7 +48,10 @@ void setRampUp(int ii);
 void setRampDown(int ii);
 void setCurrent(int ii);
 void setOnOff(int ii);
+int openTherm();
+void closeTherm();
 void getTemp();
+int checkTemp();
 void changeParam();
 int scan2int();
 float scan2float();
@@ -77,7 +82,7 @@ void setTrip(int ii);
 void setTripInt(int ii);
 void setTripExt(int ii);
 */
-time_t time0=0, time1=0, nread;
+time_t hvtime0=0, hvtime1=0, nread;
 int indexMax=0;
 
 /***********************************************************/
@@ -87,9 +92,10 @@ int main(int argc, char **argv){
 */
   //int ii=0, result=0;
   //  long int p0=0, p1=1, count=0, etime=0;
-  int mapHVmon;
+  int mapHVmon, mapTherm=-1;
   pid_t pid;
   long int p0=0,p1=1;
+  int  tOK=0;
   //char cmdRes[140] = "\0";
   printf("Working directory: %s\n",getcwd(path,PATH_MAX+1));
   strcpy(mpod_mib,path);                  // copy path to mpod mib file
@@ -119,12 +125,13 @@ int main(int argc, char **argv){
 /*  
    Read setup file on disk and load into shared memory
 */
+  //mapTherm = openTherm();
   readConf();
 /*  
   Setup time of next fill based on current time and configure file
 */
-  time0 = time(NULL);            // record starting time of program
-  hvptr->time0=time0;
+  hvtime0 = time(NULL);            // record starting time of program
+  hvptr->time0=hvtime0;
 /*  
   Get the first read of the HV data
 */
@@ -133,8 +140,11 @@ int main(int argc, char **argv){
   //setOnOff(0);
   //snmp(1,0, "outputSwitch.u0 i 0",cmdRes);
   //getHVmpod();
-  //return 0;
-  //getTemp();
+  /*mapTherm = openTherm();
+  if (mapTherm != -1)
+    tOK = checkTemp();
+  return 0;
+   */
 /*  
   Setup monitoring loop to look for changes/minute and requests   
 */
@@ -155,8 +165,13 @@ int main(int argc, char **argv){
     case  2:                   // do a regular or forced read...curtime is reset
       hvptr->secRunning = time(NULL) - hvptr->time0;
       signalBlock(p1);
-      getHVmpod(); 
-      getTemp();
+      getHVmpod();
+      getTemp(); 
+      tOK = checkTemp();
+      if (tOK != 1)
+      {
+         setHVmpod(0);
+      }
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
 /*
@@ -211,7 +226,8 @@ int main(int argc, char **argv){
 /* Decide here whether to close(fd) and exit() or not. Depends... */
   }
   close(mapHVmon);
-
+  if (mapTherm != -1 ) closeTherm(mapTherm);
+  
   return 0;
 }
 /***********************************************************/
@@ -367,6 +383,7 @@ void readConf() {
   char line[200]="\0";
   char hvmon_conf[200] ="\0";
   int ii=0, mm=0, slot=0, chan=0, onoff=0;
+  int mapTherm =-1, tOK=0;
 //int itrip=0, etrip=0;
   float volts=0.0, current=0.0, dramp=0.0, ramp=0.0;
 //float trip=0.0,  svmax=0.0, v1set=0.0, i1set=0.0;
@@ -405,7 +422,8 @@ void readConf() {
     }
 /*
    A line from the file is read above and processed below
-*/
+*/ 
+   
     mm = sscanf (line,"%i", &ii);  // read ip and type to determine CAEN or MPOD
     printf (" type = %i\n", ii);
     onoff = -1;
@@ -431,6 +449,7 @@ void readConf() {
       hvptr->xx[indexMax].type = ii;
       hvptr->xx[indexMax].slot = slot;
       hvptr->xx[indexMax].chan = chan;
+      
       strcpy(hvptr->xx[indexMax].name,name);
       strcpy(hvptr->xx[indexMax].ip,ip);
 
@@ -460,9 +479,18 @@ void readConf() {
         snmp(1,indexMax,cmd,cmdRes);
         hvptr->xx[indexMax].onOff = 0; 
       else */
-      if (hvptr->xx[indexMax].onoff != onoff) 
+      mapTherm = openTherm();
+      if (mapTherm != -1)
+        tOK = checkTemp();
+      hvptr->xx[indexMax].tOK = tOK;
+      printf("tok = %i\n",tOK);
+      if (tOK==1 && hvptr->xx[indexMax].onoff != onoff) 
       {
         hvptr->xx[indexMax].onoff = onoff;
+        setOnOff(indexMax);
+      } else if (tOK==0) 
+      {
+        hvptr->xx[indexMax].onoff = 0;
         setOnOff(indexMax);
       }
       /*
@@ -672,11 +700,82 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult) {
 /*NEEDS REDONE TWO FUNCS BELOW GETTEMP -> get temps from kelvin and change parms 
 needs to communicate to MPOD
 *******************************************************************************/
-void getTemp(){
-  /* Should talk to either log file or binary
-     with checks that it updates... */
+/*****************************************************************/
+
+int openTherm() {
+  int fd;                 // mapped file descriptor
+  //  char fileTherm[200] = "data/mmapped.bin";
+/* Open a file for writing.
+     *  - Creating the file if it doesn't exist.
+     *  - Truncating it to 0 size if it already exists. (not really needed)
+     *
+     * Note: "O_WRONLY" mode is not sufficient when mmaping.
+*/
+  fd = open(KELVINDATAPATH, O_RDWR, (mode_t)0600);
+  if (fd == -1) {
+    perror("Error opening for writing ");
+    printf (" %s \n",KELVINDATAPATH);
+    exit(EXIT_FAILURE);
+  }
+        
+/* Now the file is ready to be mmapped.
+*/
+  degptr = (struct thermometer*) mmap(0,KELVINDATASIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (degptr == MAP_FAILED) {
+    close(fd);
+    perror("Error mmapping the file kelvin data");
+    exit(EXIT_FAILURE);
+  }
+/* Don't forget to free the mmapped memory ... usually at end of main
+*/
+    
+  return (fd);
+}
+/**************************************************************/
+void closeTherm(int mapTherm){
+
+  if (mapTherm != -1 ) {            // if thermometers active
+    degptr->com3 = 0;               // set daq logging flag off (writing to SHM from this program at start/stop only)
+    if (munmap(degptr, sizeof (struct thermometer*)) == -1) {   // unmap memory
+      perror("Error un-mmapping the thermometer file");
+    }
+    close(mapTherm);                // close thermometer file
+  }
+
   return;
 }
+
+
+/**************************************************************/
+
+void getTemp(){
+  /* Should talk to shm to get data. */
+   int ii;
+   for (ii=0; ii<degptr->maxchan; ii++)
+   {
+      printf("temp %i is %lf ",ii,degptr->temps[ii].degree);
+   }
+   printf("Temp Settings = %li, %i, %i, %i, %i, %i \n",degptr->shm, degptr->com1, 
+          degptr->com2, degptr->com3, degptr->maxchan, degptr->interval);//check kelvin has pid
+   
+  // printf("fd is %i\n",fd);  
+  return;
+}
+/**************************************************************/
+
+int checkTemp(){
+  /* Should talk to shm to get data*/
+  int isOk=1, ii;
+  for (ii=0; ii<degptr->maxchan; ii++)
+  {
+      if (degptr->temps[ii].degree > 80. || degptr->temps[ii].degree < 20.)
+      {
+      	isOk*=0;
+      }
+  }
+  return(isOk);
+}
+
 
 /******************************************************************************/
 void changeParam(){

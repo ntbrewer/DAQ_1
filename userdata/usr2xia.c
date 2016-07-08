@@ -24,7 +24,7 @@
 //#define USRDATAPATH "data/usrdata.bin"             // com data for control of daq programs
 //#define USRDATASIZE sizeof(usrData)
 
-#define KELVINDATAPATH "data/kelvin.bin"            // user data for input to xia2disk
+#define KELVINDATAPATH "../data/kelvin.bin"            // user data for input to xia2disk
 #define KELVINDATASIZE sizeof(struct thermometer)
 
 #define GELNDATASIZE sizeof(struct lnfill)
@@ -249,7 +249,7 @@ void buffTherm(int begTherm, int lenTherm){
     x.s[0] = degptr->temps[ii].data;           // data written at 32-bits so x.s[0] occurs before x.s[1]
     x.s[1] = degptr->temps[ii].para;
     buff[ii+3] = x.valu;
-    //    printf(" data=%i   %i\n",x.s[1],x.s[0]);
+        printf(" data=%i   %i\n",x.s[1],x.s[0]);
   }
 
   timeTherm = degptr->tim.time1 + INTERVAL;    // time to next read ..ie, last read time + INTERVAL +/- sleep time below 
