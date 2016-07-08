@@ -446,7 +446,7 @@ void readConf() {
         setCurrent(indexMax);
       }
       /*if getTempChan(indexMax) > allowed
-        sprintf(cmd, "outputSwitch.u%i I %i",chan, 0);
+        sprintf(cmd, "outputSwitch.u%i i %i",chan, 0);
         snmp(1,indexMax,cmd,cmdRes);
         hvptr->xx[indexMax].onOff = 0; 
       else */
@@ -814,11 +814,11 @@ void setCurrent(int ii) {
 void setOnOff(int ii) {
   char cmd[140]="\0", cmdRes[140]="\0";
       /*if getTempChan(indexMax) > allowed
-        sprintf(cmd, "outputSwitch.u%i I %i",chan, 0);
+        sprintf(cmd, "outputSwitch.u%i i %i",chan, 0);
         snmp(1,indexMax,cmd,cmdRes);
         hvptr->xx[indexMax].onOff = 0; 
       else */
-  sprintf(cmd, "outputSwitch.u%i I %i",hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
+  sprintf(cmd, "outputSwitch.u%i i %i",hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
   snmp(1,indexMax,cmd,cmdRes);
 }
 /**************************************************************/
