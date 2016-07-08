@@ -1,9 +1,9 @@
 /*
   Program hvmon to monitor detector High Voltage
-  Understands Wiener MPOD and CAEN x527
+  Understands Wiener MPOD
 
   To be compiled with:                                           
-     gcc -Wall -lcaenhvwrapper -lpthread -ldl -lm -o hvmon hvmon-v1.c
+     gcc -Wall -lpthread -ldl -lm -o hvmon hvmon.mpod.c
      gcc -Wall -lm -o hvmon-read hvmon-read.c
 */
 
@@ -74,25 +74,25 @@ int main(int argc, char **argv){
       printOut();
   
       break;
-/*
+
     case 3:                      // display temps and limits
-      printf ("What interval in integer seconds ?\n");
-      kk = scan2int ();
-      //      scanf ("%li", &kk);          // read in ans (pointer is indicated)     
-      hvptr->interval = kk;
+      printOut();
       hvptr->com0 = 3;            // command (3) stored in SHM so kelvin can do something
       kill(hvptr->pid,SIGALRM);   // send an alarm to let kelvin know it needs to do command (1)
+      sleep(1);                   // sleep for a second to allow kelvin to read new values
+      printOut();
+  
       break;
-*/
+
     case 4:                      // display temps and limits
       printf("HV on...\n");
-      //      hvptr->com0 = 4;
+      hvptr->com0 = 4;
 
       break;
 
     case 5:                      // display temps and limits
       printf("HV off...\n");
-      //      hvptr->com0 = 5;
+      hvptr->com0 = 5;
       break;
     case 6:                      // display temps and limits
       printf("Saving file...\n");
@@ -103,10 +103,11 @@ int main(int argc, char **argv){
       break;
 
     case 7:
-      hvptr->com0 = 7;           // command (3) stored in SHM so kelvin can do something
-      kill(hvptr->pid,SIGALRM);  // send an alarm to let kelvin know it needs to do command (1)
-      printf("Recover setup from hardware ...\n");
-      sleep(1);
+       printf("N/A");
+      //hvptr->com0 = 7;           // command (3) stored in SHM so kelvin can do something
+      //kill(hvptr->pid,SIGALRM);  // send an alarm to let kelvin know it needs to do command (1)
+      //printf("Recover setup from hardware ...\n");
+      //sleep(1);
       break;
 
     case 8:                      // display temps and limits
@@ -123,11 +124,11 @@ int main(int argc, char **argv){
       break;
      
     case 14:                      // display temps and limits
-      printf("Channel HV on...\n");
+      printf("N/A Channel HV on...\n");
       break;
 
     case 15:                      // display temps and limits
-      printf("Channel HV off...\n");
+      printf("N/A Channel HV off...\n");
       break;
 
     case 16:                      // display temps and limits
@@ -139,11 +140,11 @@ int main(int argc, char **argv){
       break;
 
     case 17:
-      printf("Reading channel from file...\n");
+      printf("N/A Reading channel from file...\n");
       break;
 
     case 18:
-      printf("Alarm resets?.....\n");
+      printf("N/A Alarm resets?.....\n");
       break;
 
       
@@ -178,7 +179,7 @@ void menu(){
   printf ("\nOptions ? \n");
   printf ("    1 - display current high voltage data (does not read or change interval) \n");
   printf ("    2 - force a read of current high voltage data \n");
-  printf ("    3 - change measurement interval (currently %i s)\n",hvptr->interval);
+  printf ("    3 - read temps only");
   printf (" \n");
   printf ("    4 - End log file \n");
   //  printf ("    5 - End DAQ logging \n");
@@ -407,8 +408,8 @@ void menu1(){
   printf ("1 - Status           | 11 - Clone channel       |  \n");
   printf ("2 - Force read       | 12 -                     |  \n");
   printf ("3 - Force read Temps | 13 -                     |  \n");
-  printf ("4 - HV on            | 14 - HV on               |  \n");
-  printf ("5 - HV off           | 15 - HV off              |  \n");
+  printf ("4 - HV on            | 14 -                     |  \n");
+  printf ("5 - HV off           | 15 -                     |  \n");
   printf ("6 - Save conf file   | 16 - Alter parameters    |  \n");
   printf ("7 - Recover hardware | 17 - Read from file      |  \n");
   printf ("8 - On list          | 18 -                     |  \n");

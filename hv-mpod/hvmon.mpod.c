@@ -137,7 +137,8 @@ int main(int argc, char **argv){
   Get the first read of the HV data
 */
   hvptr->com0 = 2;
-   // mpodHV();
+  mpodHV();
+  getTemp();
   //  caenGet();
 /*  
   Setup monitoring loop to look for changes/minute and requests   
@@ -163,7 +164,7 @@ int main(int argc, char **argv){
       mpodHV(); 
       //    caenSet();
 //      caenGet();
-//      getTemp();
+      getTemp();
 
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
@@ -195,7 +196,7 @@ int main(int argc, char **argv){
       break;
       
     case 7:                 // Recover from hardware...
-      printf(" Recovering data from hardware....\n");
+      printf(" Recovering CAEN data from hardware....\n");
       signalBlock(p1);
       //      caenGetBySlot();
 //      recoverCAEN();
