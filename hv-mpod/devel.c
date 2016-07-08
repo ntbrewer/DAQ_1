@@ -122,7 +122,7 @@ int main(int argc, char **argv){
 */
   hvptr->com0 = 2;
   getHVmpod();
-  break;
+  return 0;
   getTemp();
 /*  
   Setup monitoring loop to look for changes/minute and requests   
