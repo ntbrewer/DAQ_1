@@ -3,18 +3,16 @@
   Understands Wiener MPOD and CAEN x527
 
   To be compiled with:                                           
-     gcc -Wall -lcaenhvwrapper -lpthread -ldl -lm -o hvmon hvmon.mpod.c
+     gcc -Wall -lpthread -ldl -lm -o hvmon hvmon.mpod.c
 */
 
 #include "../include/hvmon.h"
-#include "../include/CAENHVWrapper.h"
 
 #define MPOD_MIB     "../include/WIENER-CRATE-MIB.txt"
 #define CONFIGFILE   "../include/hvmon.conf"
 #define INTERVAL 60  //wake up every 15 seconds 
 
 void readConf();                  // processes configuration file
-void readConfNew();                  // processes configuration file
 int mmapSetup();                  // sets up the memory map
 
 //  MPOD SNMP related commands
@@ -40,16 +38,18 @@ char         path [PATH_MAX+1];                  // PATH_MAX defined in a system
 char     mpod_mib [PATH_MAX+100]="\0";
 char ibootbar_mib [PATH_MAX+100]="\0";
 
-void mpodHV();
-//void caenGet();
-//void caenSet();
-//void caenCrate();
-//void caenGetBySlot();
-void hvOnAll();
-void hvOffAll();
-//void recoverCAEN();
+void getHVmpod();
+void getHVmpodChan(int ii);
+void setHVmpod(int ii);
+void setVolts(int ii);
+void setRampUp(int ii);
+void setCurrent(int ii);
+void setOnOff(int ii);
 void getTemp();
 void changeParam();
+int scan2int();
+float scan2float();
+/*
 void getVMon(int ii);
 void getIMon(int ii);
 void getV0Set(int ii);
@@ -75,15 +75,9 @@ void setRDWn(int ii);
 void setTrip(int ii);
 void setTripInt(int ii);
 void setTripExt(int ii);
-
+*/
 time_t time0=0, time1=0, nread;
 int indexMax=0;
-
-// for CAEN crate mapping
-//char *model, *descModel;
-//unsigned short numOfSlots;
-//unsigned short *numOfChan, *serNumList;
-//unsigned char  *firmwareMin, *firmwareMax;
 
 /***********************************************************/
 int main(int argc, char **argv){
@@ -124,22 +118,19 @@ int main(int argc, char **argv){
 /*  
    Read setup file on disk and load into shared memory
 */
-//  readConf();
-  readConfNew();
-
+  readConf();
 /*  
   Setup time of next fill based on current time and configure file
 */
   time0 = time(NULL);            // record starting time of program
   hvptr->time0=time0;
-  //  time1 = time0 + INTERVAL;      // set up next read of voltages...usually every minute
 /*  
   Get the first read of the HV data
 */
   hvptr->com0 = 2;
-  mpodHV();
-  getTemp();
-  //  caenGet();
+  //getHVmpod();
+  //return 0;
+  //getTemp();
 /*  
   Setup monitoring loop to look for changes/minute and requests   
 */
@@ -147,9 +138,9 @@ int main(int argc, char **argv){
   hvptr->com0 = 2;
 
   while(hvptr->com0 != -1) {
-    //    for (ii=0; ii<indexMax; ii++){
-    //      if (hvptr->xx[ii].type == 0) {   
-	//	printf ("mon  MPOD  %i \n",ii);
+    /*    for (ii=0; ii<indexMax; ii++){
+          if (hvptr->xx[ii].type == 0) {   
+		printf ("mon  MPOD  %i \n",ii);*/
 
     switch ( hvptr->com0 ) { 
     
@@ -158,14 +149,10 @@ int main(int argc, char **argv){
       break;
 
     case  2:                   // do a regular or forced read...curtime is reset
-      //      hvptr->time1=time(NULL);
       hvptr->secRunning = time(NULL) - hvptr->time0;
       signalBlock(p1);
-      mpodHV(); 
-      //    caenSet();
-//      caenGet();
+      getHVmpod(); 
       getTemp();
-
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
 /*
@@ -177,60 +164,39 @@ int main(int argc, char **argv){
 */
       break;
     case 3:
-      hvptr->com0 = 2;    // set comand to regular reading or else we lose touch with the CAEN module
+      signalBlock(p1);
+      getTemp();
+      signalBlock(p0);
+      hvptr->com0 = 2;    // test if necessary
       break;
     case 4:                 // HV On all
       signalBlock(p1);
-      hvOnAll();
+      setHVmpod(1);
       signalBlock(p0);
-      //      caenGetBySlot();
-      hvptr->com0 = 2;    // things by slots...may not need
+      hvptr->com0 = 2;    // set comand to regular reading. Test if necessary
       break;
     case 5:                // HV Off All
       signalBlock(p1);
- //     caenGetBySlot();
-      hvOffAll();
+      setHVmpod(0);
       signalBlock(p0);
-   
-      hvptr->com0 = 2;    // things by 
-      break;
-      
-    case 7:                 // Recover from hardware...
-      printf(" Recovering CAEN data from hardware....\n");
-      signalBlock(p1);
-      //      caenGetBySlot();
-//      recoverCAEN();
-      signalBlock(p0);
-      hvptr->com0 = 2;    // set comand to regular reading or else we lose touch with the CAEN module
-      //      sleep(10);
+      hvptr->com0 = 2;   
       break;
     case 16:
       printf(" Changing parameters of one detector....\n");
       signalBlock(p1);
       changeParam();
       signalBlock(p0);
-      hvptr->com0 = 2;    // set comand to regular reading or else we lose touch with the CAEN module
+      hvptr->com0 = 2;    // set comand to regular reading. Test if necessary
      break;
       
     default:
       hvptr->com0 = 2;
       sleep (INTERVAL);
-      //      hvptr->com0 = 2;
+
       break;
     }  // end of switch statement    hvptr->com0 = -1;
   }  // end of while statement
 
-  // CLOSE THE CAEN SYSTEMS HERE!!!!
-  /*for (ii=0; ii<hvptr->maxchan; ii++){
-    if (hvptr->xx[ii].type == 1) {
-      result = CAENHV_DeinitSystem(hvptr->xx[ii].caenH);
-      if (result != 0) printf("Error deattaching to CAEN system %s \n",hvptr->xx[indexMax].ip);
-      else {
-	printf ("Successful logout of CAEN crate!\n");
-	break;
-      }
-    }
-  }*/
   
 /*
    Release the shared memory and close the U3
@@ -244,7 +210,6 @@ int main(int argc, char **argv){
 
   return 0;
 }
-
 /***********************************************************/
 void signalBlock(int pp){
 /*
@@ -398,134 +363,13 @@ void readConf() {
   char line[200]="\0";
   char hvmon_conf[200] ="\0";
   int ii=0, mm=0, slot=0, chan=0, onoff=0;
+//int itrip=0, etrip=0;
   float volts=0.0, current=0.0, ramp=0.0;
+//float trip=0.0, dramp=0.0, svmax=0.0, v1set=0.0, i1set=0.0;
   char ip[30]="\0", name[15]="\0";
+
   //char ipsave[10][30];
   //int kk=0,new=0;
-  int maxIP=0;
-
-  strcpy(hvmon_conf,path);
-  strcat(hvmon_conf,"/");
-  strcat(hvmon_conf,CONFIGFILE);
-  printf("    mpod_mib file: %s\n",hvmon_conf);
-
-/*
-   Read configuration file
-*/  
-  if ( ( ifile = fopen (hvmon_conf,"r+") ) == NULL) {
-    printf ("*** File on disk (%s) could not be opened: \n",hvmon_conf);
-    printf ("===> %s \n",hvmon_conf);
-    exit (EXIT_FAILURE);
-  }
-
-  fgets(line,200,ifile);    // reads column headers
-  fgets(line,200,ifile);    // reads ----
-/*
- Should be positioned to read file
-*/
-  indexMax = 0;
-  while (1) {                   // 1 = true
-    fgets(line,200,ifile);
-    if (feof(ifile)) {
-      mm = fclose(ifile);
-      if (mm != 0) printf("File not closed\n");
-      break;
-    }
-/*
-   A line from the file is read above and processed below
-*/
-    mm = sscanf (line,"%i", &ii);
-    onoff = -1;
-    chan = -1;
-    slot = -1;
-    volts = 0.0;
-    ramp = 0.0;
-    current = 0.0;
-    strcpy (name,"\0");
-/*
-  Process MPOD and other SNMP data
-*/    
-    if (ii == 0) {
-      mm = sscanf (line,"%i %s %u %u %f %f %f %14s", &ii, ip, &chan, &slot, &volts, &ramp, &current, name);  // CAEN data
-      hvptr->xx[indexMax].type = ii;
-      hvptr->xx[indexMax].chan = chan;
-      hvptr->xx[indexMax].slot = slot;
-      hvptr->xx[indexMax].vSet = volts;
-      hvptr->xx[indexMax].vRamp = ramp;
-      hvptr->xx[indexMax].iSet = current;
-      strcpy(hvptr->xx[indexMax].name,name);
-      strcpy(hvptr->xx[indexMax].ip,ip);
-
-
-      /*
-      mm = sscanf (line,"%i %s %u     %f", &ii, ip, &chan, &volts);  // MPOD data
-      hvptr->xx[indexMax].type = ii;
-      hvptr->xx[indexMax].chan = chan;
-      hvptr->xx[indexMax].vSet = volts;
-      hvptr->xx[indexMax].slot = slot;
-      strcpy(hvptr->xx[indexMax].ip,ip);
-      */
-      printf ("MPOD = %s %3u    %7.1f %i\n", hvptr->xx[indexMax].ip, hvptr->xx[indexMax].chan, hvptr->xx[indexMax].vSet,hvptr->xx[indexMax].type);
-    }
-    
-/*
-  Process CAEN 1527, 2527, ... HV supplies
-*/    
-    /*if (ii == 1) {
-      mm = sscanf (line,"%i %s %u %u %f %f %f %14s", &ii, ip, &chan, &slot, &volts, &ramp, &current, name);  // CAEN data
-      hvptr->xx[indexMax].type = ii;
-      hvptr->xx[indexMax].chan = chan;
-      hvptr->xx[indexMax].slot = slot;
-      hvptr->xx[indexMax].vSet = volts;
-      hvptr->xx[indexMax].vRamp = ramp;
-      hvptr->xx[indexMax].iSet = current;
-      strcpy(hvptr->xx[indexMax].name,name);
-      strcpy(hvptr->xx[indexMax].ip,ip);
-
-      new = 0;
-      for (kk=0; kk<maxIP; kk++) {                         // check if multiple CAEN units; new = a new IP found
-	if (strcmp(ipsave[kk],ip) == 0) new = 1;              
-      }
-      if (new == 0) {
-	strcpy(ipsave[maxIP],ip);      //...save and connect to get the handle: ceanH
-      	printf("new IP: maxcaen = %i, IP = %s \n",maxIP,ipsave[maxIP]);
-	maxIP++;
-	//	hvptr->maxcaen++;
-	caenCrate();
-      }
-      else hvptr->xx[indexMax].caenH = hvptr->xx[indexMax-1].caenH;   // copy previous caen Handle to this entry
-    
-      printf ("CAEN = %s %3u %3u %7.1f %7.1f %7.1f %i %s \n",hvptr->xx[indexMax].ip, hvptr->xx[indexMax].chan,
-	      hvptr->xx[indexMax].slot, hvptr->xx[indexMax].vSet, hvptr->xx[indexMax].vRamp, hvptr->xx[indexMax].iSet,
-	      hvptr->xx[indexMax].type, hvptr->xx[indexMax].name);
-    }*/
-/*
-    Reached the end of the configuration file data
-*/
-    if (ii == -1) {
-      mm = fclose(ifile);
-      if (mm != 0) printf("File not closed\n");
-      break;
-    }
-    
-    indexMax++;            // increment indexes 
-  }   // end of while statement
-  hvptr->maxchan = indexMax;
-  printf ("%i HV entries found on MPODs and/or %i CAEN HV supplies\n",hvptr->maxchan, maxIP);
-  
-  return;
-}
-/******************************************************************************/
-void readConfNew() {
-  FILE *ifile;
-  char line[200]="\0";
-  char hvmon_conf[200] ="\0";
-  int ii=0, mm=0, slot=0, chan=0, onoff=0, itrip=0, etrip=0;
-  float volts=0.0, current=0.0, ramp=0.0, trip=0.0, dramp=0.0, svmax=0.0, v1set=0.0, i1set=0.0;
-  char ip[30]="\0", name[15]="\0";
-  //char ipsave[10][30];
-  //int kk=0,new=0;
-  int maxIP=0;
     
   strcpy(hvmon_conf,path);
   strcat(hvmon_conf,"/");
@@ -558,8 +402,8 @@ void readConfNew() {
 /*
    A line from the file is read above and processed below
 */
-    mm = sscanf (line,"%s %i", ip, &ii);  // read ip and type to determine CAEN or MPOD
-    printf (" ip=%s , type = %i\n", ip, ii);
+    mm = sscanf (line,"%i", &ii);  // read ip and type to determine CAEN or MPOD
+    printf (" type = %i\n", ii);
     onoff = -1;
     chan = -1;
     slot = -1;
@@ -567,27 +411,50 @@ void readConfNew() {
     ramp = 0.0;
     current = 0.0;
     strcpy (name,"\0");
-    dramp = 0.0;
+    /*dramp = 0.0;
     svmax = 0.0;
     v1set = 0.0;
     i1set = 0.0;
     trip = 0.0;
     itrip = 0;
-    etrip = 0;
+    etrip = 0;*/
 /*
   Process MPOD and other SNMP data
 */    
     if (ii == 0) {
-      mm = sscanf (line,"%s %i %u %u %14s %f %f %f ", ip, &ii, &slot, &chan, name, &volts, &current, &ramp);  // MPOD data
+      mm = sscanf (line,"%i %s %u %u %14s %f %f %f %i",&ii, ip, &chan, &slot, name, &volts, &current, &ramp, &onoff);  // MPOD data
       hvptr->xx[indexMax].type = ii;
       hvptr->xx[indexMax].slot = slot;
       hvptr->xx[indexMax].chan = chan;
-      hvptr->xx[indexMax].vSet = volts;
-      hvptr->xx[indexMax].vRamp = ramp;
-      hvptr->xx[indexMax].iSet = current;
       strcpy(hvptr->xx[indexMax].name,name);
       strcpy(hvptr->xx[indexMax].ip,ip);
 
+      getHVmpodChan(indexMax);
+      if (hvptr->xx[indexMax].vSet != volts)
+      {
+        hvptr->xx[indexMax].vSet = volts;
+        setVolts(indexMax);
+      }
+      if (hvptr->xx[indexMax].vRamp != ramp)
+      {
+        hvptr->xx[indexMax].vRamp = ramp;
+        setRampUp(indexMax);
+      }
+      if (hvptr->xx[indexMax].iSet != current)
+      {
+        hvptr->xx[indexMax].iSet = current;
+        setCurrent(indexMax);
+      }
+      /*if getTempChan(indexMax) > allowed
+        sprintf(cmd, "outputSwitch.u%i I %i",chan, 0);
+        snmp(1,indexMax,cmd,cmdRes);
+        hvptr->xx[indexMax].onOff = 0; 
+      else */
+      if (hvptr->xx[indexMax].onoff != onoff) 
+      {
+        hvptr->xx[indexMax].onoff = onoff;
+        setOnOff(indexMax);
+      }
       /*
       mm = sscanf (line,"%i %s %u     %f", &ii, ip, &chan, &volts);  // MPOD data
       hvptr->xx[indexMax].type = ii;
@@ -598,50 +465,6 @@ void readConfNew() {
       */
       printf ("MPOD = %s %3u    %7.1f %i\n", hvptr->xx[indexMax].ip, hvptr->xx[indexMax].chan, hvptr->xx[indexMax].vSet,hvptr->xx[indexMax].type);
     }
-    
-/*
-  Process CAEN 1527, 2527, ... HV supplies
-*/    
-   /* if (ii == 1) {
-      mm = sscanf (line,"%s %i %u %u %14s %f %f %f %f %f %f %f %f %i %i", ip, &ii, &slot, &chan, name, &volts, &current, &ramp,
-		   &dramp, &svmax, &v1set, &i1set, &trip, &itrip, &etrip);  // CAEN data
-
-      //      mm = sscanf (line,"%i %s %u %u %f %f %f %14s", &ii, ip, &chan, &slot, &volts, &ramp, &current, name);  // CAEN data
-      hvptr->xx[indexMax].type = ii;
-      hvptr->xx[indexMax].chan = chan;
-      hvptr->xx[indexMax].slot = slot;
-      hvptr->xx[indexMax].vSet = volts;
-      hvptr->xx[indexMax].vRamp = ramp;
-      hvptr->xx[indexMax].iSet = current;
-      strcpy(hvptr->xx[indexMax].name,name);
-      strcpy(hvptr->xx[indexMax].ip,ip);
-      hvptr->xx[indexMax].downRamp = dramp;
-      hvptr->xx[indexMax].vMax = svmax;
-      hvptr->xx[indexMax].v1Set = v1set;
-      hvptr->xx[indexMax].i1Set = i1set;
-      hvptr->xx[indexMax].trip = trip;
-      hvptr->xx[indexMax].intTrip = itrip;
-      hvptr->xx[indexMax].extTrip = etrip;
-
-      new = 0;
-      for (kk=0; kk<maxIP; kk++) {                         // check if multiple CAEN units; new = a new IP found
-	if (strcmp(ipsave[kk],ip) == 0) new = 1;              
-      }
-      if (new == 0) {
-	strcpy(ipsave[maxIP],ip);      //...save and connect to get the handle: ceanH
-      	printf("new IP: maxcaen = %i, IP = %s \n",maxIP,ipsave[maxIP]);
-	maxIP++;
-	//	hvptr->maxcaen++;
-	caenCrate();
-      }
-      else hvptr->xx[indexMax].caenH = hvptr->xx[indexMax-1].caenH;   // copy previous caen Handle to this entry
-    
-      hvptr->caenCrate[hvptr->xx[indexMax].slot] += pow(2,hvptr->xx[indexMax].chan);    // record active chan in bit pattern
-
-    printf ("CAEN = %s %3u %3u %7.1f %7.1f %7.1f %i %s \n",hvptr->xx[indexMax].ip, hvptr->xx[indexMax].chan,
-	      hvptr->xx[indexMax].slot, hvptr->xx[indexMax].vSet, hvptr->xx[indexMax].vRamp, hvptr->xx[indexMax].iSet,
-	      hvptr->xx[indexMax].type, hvptr->xx[indexMax].name);
-    }*/
 /*
     Reached the end of the configuration file data
 */
@@ -654,16 +477,8 @@ void readConfNew() {
     indexMax++;            // increment indexes 
   }   // end of while statement
   hvptr->maxchan = indexMax;
-  printf ("%i HV entries found on MPODs and/or %i CAEN HV supplies\n",hvptr->maxchan, maxIP);
-/*
-  for (ii=0;ii<16;ii++){
-    printf ("chan pattern by slot %i => %x => %i \n",ii,hvptr->caenCrate[ii],hvptr->caenCrate[ii] );
-  }
-  
-  for (ii=0;ii<24;ii++){
-    if (((hvptr->caenCrate[2] & (int)pow(2,ii)) >> ii)== 1) printf(" %i occupied\n",ii);
-  }
-*/  
+  printf ("%i HV entries found on MPODs\n",hvptr->maxchan);
+
   return;
 }
 
@@ -713,16 +528,28 @@ int readOnOff(char *cmdResult) {
 }
 
 /******************************************************************************/
-void mpodHV() {
-  int setget=0, ii=0;
+void getHVmpod() {
+  int ii=0;
+  //char cmd[150]="\0", cmdResult[140]="\0";
+
+  //printf (" Getting MPOD data ....");  
+  for (ii=0; ii<indexMax; ii++){
+    getHVmpodChan(ii);
+  }
+  printf (".... finished \n");  
+  return;
+}
+/******************************************************************************/
+void getHVmpodChan(int ii) {
+  int setget=0;
   char cmd[150]="\0", cmdResult[140]="\0";
 
   printf (" Getting MPOD data ....");  
-  for (ii=0; ii<indexMax; ii++){
 
     if (hvptr->xx[ii].type == 0) {
       sprintf(cmd,"outputVoltage.u%i",hvptr->xx[ii].chan); 
       snmp(setget,ii,cmd,cmdResult);     //mpodGETguru(cmd, cmdResult);     // read the set voltage
+      printf(cmdResult);
       hvptr->xx[ii].vSet = readFloat(cmdResult);
 
       sprintf(cmd,"outputMeasurementSenseVoltage.u%i",hvptr->xx[ii].chan);
@@ -740,12 +567,34 @@ void mpodHV() {
       sprintf(cmd,"outputCurrent.u%i",hvptr->xx[ii].chan);
       snmp(setget,ii,cmd,cmdResult);   //mpodGETguru(cmd, cmdResult);     // read the max current
       hvptr->xx[ii].iSet = readFloat(cmdResult);
+
+      sprintf(cmd,"outputSwitch.u%i",hvptr->xx[ii].chan);
+      snmp(setget,ii,cmd,cmdResult);   //mpodGETguru(cmd, cmdResult);     // read the max current
+      hvptr->xx[ii].onoff = readOnOff(cmdResult);
+
+    }
+  printf("current settings are: V=%f, Vm=%f, Vup=%f, I=%f, Im=%f, 1/0=%i",
+          hvptr->xx[ii].vSet, hvptr->xx[ii].vMeas,hvptr->xx[ii].vRamp, 
+          hvptr->xx[ii].iSet, hvptr->xx[ii].iMeas, hvptr->xx[ii].onoff);
+  //printf (".... finished \n");  
+  return;
+}
+/******************************************************************************/
+void setHVmpod(int nf) {
+  int ii=0;
+  //char cmd[150]="\0", cmdResult[140]="\0";
+
+  printf (" Getting MPOD data ....");  
+  for (ii=0; ii<indexMax; ii++){
+
+    if (hvptr->xx[ii].type == 0) {
+      hvptr->xx[ii].onoff = nf;      
+      setOnOff(ii);    //mpodGETguru(cmd, cmdResult);     // read the set voltage
     }
   }
   printf (".... finished \n");  
   return;
 }
-
 /******************************************************************************/
 void snmp(int setget, int ii, char *cmd, char *cmdResult) {
   //  pid_t wait(int *stat_loc);
@@ -767,15 +616,16 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult) {
      //printf("ok.");
     //    sprintf (com,"snmpset -v 2c -L o -m %s -c guru %s ",MPOD_MIB,MPOD_IP);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
     //sprintf (com,"snmpset -v 2c -L o -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
-    sprintf (com,"snmpset -OqvU -v 2c -M /usr/share/snmp/mibs -m +%s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
+    sprintf (com,"snmpset -v 2c -M /usr/share/snmp/mibs -m +%s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
   } 
   else if (setget == 0){
     sprintf (com,"snmpget -v 2c -M /usr/share/snmp/mibs -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);
     //sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,hvptr->xx[ii].ip);
     //    sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,MPOD_IP);
   }
-  //  else if (setget == 2){              // if setget =2 then issue HV shutdown
-  //}
+  else if (setget == 2){              // if setget =2 then issue HV shutdown
+    sprintf (com,"snmpset -OqvU -v 2c -M /usr/share/snmp/mibs -m +%s -c guru %s i 0",MPOD_MIB,hvptr->xx[ii].ip);
+  }
   strcat(com,cmd);                             // add command to snmp system call
   //  printf("%s\n",com);
 
@@ -809,563 +659,18 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult) {
 }
 
 /******************************************************************************/
-void caenCrate() {
-  char *model, *descModel, *m, *d;
-  unsigned short numOfSlots;
-  unsigned short *numOfChan, *serNumList;
-  unsigned char  *firmwareMin, *firmwareMax;
-  int result=0, ii=0;
-
-  result = CAENHV_InitSystem(SY1527, 0, hvptr->xx[indexMax].ip, "admin", "admin", &hvptr->xx[indexMax].caenH);   // only opens 1527 CAEN systems
-  if (result != 0) printf("Error attaching to CAEN system %s \n",hvptr->xx[indexMax].ip);
-  else {
-    printf ("Successful login!...now map it \n");
-    result = CAENHV_GetCrateMap(hvptr->xx[indexMax].caenH, &numOfSlots, &numOfChan, &model, &descModel, &serNumList, &firmwareMin, &firmwareMax);   // need to get the crate info in order to access
-    if (result != 0) printf("Error mapping CAEN system %s \n",hvptr->xx[indexMax].ip);
-    else {
-      printf ("Successful Map\n\n");
-      m = model;
-      d = descModel;
-      for (ii=0; ii<numOfSlots; ii++, m += strlen(m) + 1, d += strlen(d) + 1 ){
-	if( *m == '\0' ){
-	  printf("Board %2d: Not Present\n", ii);
-	  hvptr->caenCrate[ii]=-1;    //  bits above 24 are also set so -1 is OK
-	  hvptr->caenSlot[ii]=0;      //  number of channels
-	}
-	else {
-	  printf("Board %2d: %s %s  Nr. Ch: %d  Ser. %d   Rel. %d.%d \n",
-		    ii, m, d, numOfChan[ii], serNumList[ii], firmwareMax[ii],firmwareMin[ii]);
-	  hvptr->caenCrate[ii]=0;           //  bits = 0 above 24 are also set so -1 is OK
-	  hvptr->caenSlot[ii]=(unsigned int) numOfChan[ii];    //  number of channels
-	  printf ("number of channels in slot %i = %i\n",ii,hvptr->caenSlot[ii]);
-	}
-      }
-    }
-    printf ("\n");
-  }
-  free(serNumList), free(model), free(descModel), free(firmwareMin), free(firmwareMax), free(numOfChan);
-
-  return;
-}
-
-/******************************************************************************/
-void caenGetBySlot() {
-/*
-   Get parameters from CAEN crates   
-*/
-  int ii=0, jj=0, result =0;
-  unsigned short c24 = 24, slot=0;
-  //char V0Set[30]="V0Set\0";   //   V0Set  I0Set  IMon VMon
-  //char I0Set[30]="I0Set\0";   //   V0Set  I0Set  IMon VMon
-  char VMon[30]="VMon\0";     //   V0Set  I0Set  IMon VMon
-  //char IMon[30]="IMon\0";     //   V0Set  I0Set  IMon VMon
-  char Pw[30]="Pw\0";         //   PW
-  float	         *floatVal  = NULL;
-  unsigned int   *unsignVal = NULL;
-  unsigned short *ChList;
-
-  ChList =    malloc(c24*sizeof(unsigned short));
-  floatVal =  malloc(c24*sizeof(float));               // if multiple channels use numChan instead of one
-  unsignVal = malloc(c24*sizeof(unsigned int));      // if multiple channels use numChan instead of one
-
-  //  printf (" Getting CAEN data ....");  
-  for (ii=0; ii< c24; ii++){
-    ChList[ii]=ii;
-  }
-  slot=5;
-  ii = 10;
-  //  for (ii=0; ii<indexMax; ii++){
-  //    if (hvptr->xx[ii].type == 1) {
-      /**/
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, slot, VMon, c24, ChList, floatVal);
-  if (result != 0) printf("Error getting VMON from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else {
-    //      floatVal[0] = 0;
-    for (ii=0; ii<c24; ii++){
-      printf ("chan %u = %7.1f volts\n", ChList[ii],floatVal[ii]);
-    }
-  }
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, slot, Pw, c24, ChList, unsignVal);
-  if (result != 0) printf("Error getting VMON from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else {
-    //      floatVal[0] = 0;
-    for (ii=0; ii<c24; ii++){
-      printf ("chan %u = %u volts\n", ChList[ii],unsignVal[ii]);
-    }
-  }
-
-  for (ii=0; ii <hvptr->maxchan; ii++){
-    if ( (hvptr->xx[ii].caenH == hvptr->xx[ii].caenH) && (hvptr->xx[ii].slot == slot)) {
-      for (jj=0;jj<c24;jj++){
-	if ((hvptr->xx[ii].chan == ChList[jj]) && (hvptr->xx[ii].onoff == 1)){
-	  printf ("chan %u = %7.1f volts\n", ChList[jj],floatVal[jj]);
-	  hvptr->xx[ii].vMeas = floatVal[jj];
-	}
-      }
-    }
-  }
-
-  free(floatVal);  free(ChList);  free(unsignVal);
-  printf (".... finished\n");  
-  return;
-}
-
-/******************************************************************************/
-void recoverCAEN() {
-/*
-   Get parameters from CAEN crates   
-*/
-  int ii=0, jj=0, kk=0, nn=0, type1=0, result=0, pp=0;
-  int handle=0;
-  char ipaddr[30];
-  
-  char V0Set[30]="V0Set\0";       //   V0Set  
-  char I0Set[30]="I0Set\0";       //   I0Set  
-  char VMon[30]="VMon\0";         //   VMon
-  //char IMon[30]="IMon\0";         //   IMon 
-  char Pw[30]="Pw\0";             //   PW
-  char V1Set[30]="V1Set\0";       //   V1Set
-  char I1Set[30]="I1Set\0";       //   I1Set
-  char SVMax[30]="SVMax\0";       //   V0Set  I0Set  IMon VMon
-  char Trip[30]="Trip\0";         //   SVMax
-  char RUp[30]="RUp\0";           //   RUp
-  char RDWn[30]="RDWn\0";         //   RDWn
-  char TripInt[30]="TripInt\0";   // TripInt
-  char TripExt[30]="TripExt\0";   // TripExt
-  struct hvchan yy[1000];
-
-  float	         *floatVal  = NULL;
-  unsigned int   *unsignVal = NULL;
-  unsigned short *ChList;
-  char  (*charVal)[MAX_CH_NAME];
-  /*
-  ChList =    malloc(c24*sizeof(unsigned short));
-  floatVal =  malloc(c24*sizeof(float));               // if multiple channels use numChan instead of one
-  unsignVal = malloc(c24*sizeof(unsigned long int));      // if multiple channels use numChan instead of one
-*/
-  printf (" Getting CAEN data ....\n ");  
-
-  ii=0;
-  while (++ii < 1000) {
-    if (hvptr->xx[ii].type == 1) {
-      //     printf (" Found start of CAEN data at ii=%i .... ",ii);  
-      handle = hvptr->xx[ii].caenH;
-      strcpy(ipaddr, hvptr->xx[ii].ip);
-      type1=ii;
-      break;
-    }
-  }
-
-  hvptr->maxchan =0;             // 0 maxchan to reload it....but what about MPOD?
-  nn=0;
-  for (kk=0; kk<16; kk++){              // loop over slots getting data by module...ie., get info from all channels
-    //    printf ("processing slot %i\n",kk);
-    if (hvptr->caenSlot[kk] != 0) {     // will sort at end based on those that have onoff = 1.
-      //     printf ("processing loaded slot %i\n",kk);
-      ChList =    malloc(hvptr->caenSlot[kk]*sizeof(unsigned short));
-      floatVal =  malloc(hvptr->caenSlot[kk]*sizeof(float));               // if multiple channels use numChan instead of one
-      unsignVal = malloc(hvptr->caenSlot[kk]*sizeof(unsigned int));      // if multiple channels use numChan instead of one
-      charVal =   malloc(hvptr->caenSlot[kk]*sizeof(MAX_CH_NAME));
-  
-      hvptr->caenCrate[kk] =0;                      // zero the channel bit pattern....reset based on Pw =1 below
-      for (jj=0; jj< hvptr->caenSlot[kk]; jj++){    // zero the return data
-	ChList[jj]=jj;
-      }
-      result = CAENHV_GetChParam(handle, kk, VMon, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting VMON from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].vMeas = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, V0Set, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting V0Set from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].vSet = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, I0Set, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting I0Set from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].iSet = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, I1Set, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting I1Set from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].i1Set = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, V1Set, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting V1Set from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].v1Set = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, SVMax, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting SVMax from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].vMax = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, RUp, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting vRamp from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].vRamp = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, RDWn, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting RDWn from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].downRamp = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, Trip, hvptr->caenSlot[kk], ChList, floatVal);
-      if (result != 0) printf("Error getting Trip from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].trip = floatVal[ii-nn];
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, Pw, hvptr->caenSlot[kk], ChList, unsignVal);
-      if (result != 0) printf("Error getting PW (onoff) from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].onoff = (int) unsignVal[ii-nn];   // (float)val;           // get power PW as onoff
-	  if ( yy[ii].onoff == 1) {
-	    yy[ii].type = 1;                           // set type to caen crate
-	    hvptr->caenCrate[kk] += pow(2,ii-nn);      // load channel bit pattern
-	    yy[ii].chan=ii-nn;                         // load crannel
-	    yy[ii].slot=kk;                            // load slot
-	    yy[ii].caenH=handle;                       // load handle
-	    strcpy(yy[ii].ip,ipaddr);                  // load ip address
-	    pp++;
-	    //	    printf("last pp = %i\n",pp);
-	  }
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, TripInt, hvptr->caenSlot[kk], ChList, unsignVal);
-      if (result != 0) printf("Error getting TripInt from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].intTrip = (int) unsignVal[ii-nn];   // (float)val;           // get power PW as onoff
-	}
-      }
-      result = CAENHV_GetChParam(handle, kk, TripExt, hvptr->caenSlot[kk], ChList, unsignVal);
-      if (result != 0) printf("Error getting TripExt from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  yy[ii].extTrip = (int) unsignVal[ii-nn];   // (float)val;           // get power PW as onoff
-	}
-      }
-      /*
-      result = CAENHV_GetChName(handle, kk, hvptr->caenSlot[kk], ChList, charVal);
-      if (result != 0) printf("Error getting Name from CAEN system %s handle %i\n",ipaddr,handle);
-      else {
-	printf("Name string length %li\n",strlen(charVal[ii-nn]));
-	for (ii=nn; ii < nn+hvptr->caenSlot[kk]; ii++){
-	  //	  strcpy(hvptr->xx[ii].name,charVal[ii]);   // (float)val;           // get power PW as onoff
-	  strcpy(yy[ii].name,charVal[ii-nn]);   // (float)val;           // get power PW as onoff
-	}
-      }
-      */
-      nn += hvptr->caenSlot[kk];
-      //      printf("nn = %i  pp = %i\n",nn,pp);
-      free(floatVal);  free(ChList);  free(unsignVal); free(charVal);
-    }
-  }
-/*
-  Have loaded all information into the arrays; now consolodate to maxchan.
-*/
-  kk = type1;                  // first CAEN module
-  //  printf("last nn = %i\n",nn);
-  for (ii=0; ii<nn; ii++) {
-    if (yy[ii].onoff == 1) {                         // scroll through those found with HV on
-      hvptr->xx[kk++] = yy[ii];                      // copy into the CAEN data AFTER the MPOD
-      //      printf("processing channel with HV on %i\n",kk);
-    }
-  }
-  hvptr->maxchan = kk;     // record maxchan
-  indexMax = hvptr->maxchan;
-  
-  printf (".... finished...found %i CAEN channels that are on\n", hvptr->maxchan-type1);  
-  return;
-}
-	
-/******************************************************************************/
-void caenGet() {
-/*
-   Get parameters from CAEN crates   
-*/
-  int ii=0, result =0, one = 1;
-  char V0Set[30]="V0Set\0";   //   V0Set  I0Set  IMon VMon
-  char I0Set[30]="I0Set\0";   //   V0Set  I0Set  IMon VMon
-  //char VMon[30]="VMon\0";     //   V0Set  I0Set  IMon VMon
-  //char IMon[30]="IMon\0";     //   V0Set  I0Set  IMon VMon
-  char Pw[30]="Pw\0";         //   PW
-  char V1Set[30]="V1Set\0";   //   V0Set  I0Set  IMon VMon
-  char I1Set[30]="I1Set\0";   //   V0Set  I0Set  IMon VMon
-  char SVMax[30]="SVMax\0";   //   V0Set  I0Set  IMon VMon
-  char Trip[30]="Trip\0";   //   V0Set  I0Set  IMon VMon
-  char RUp[30]="RUp\0";   //   V0Set  I0Set  IMon VMon
-  char RDWn[30]="RDWn\0";   //   V0Set  I0Set  IMon VMon
-  char TripInt[30]="TripInt\0";   //   V0Set  I0Set  IMon VMon
-  char TripExt[30]="TripExt\0";   //   V0Set  I0Set  IMon VMon
-
-  float	         *floatVal  = NULL;
-  unsigned int   *unsignVal = NULL;
-  unsigned short *ChList;
-  char  (*charVal)[MAX_CH_NAME];
-
-  
-  ChList =    malloc(sizeof(unsigned short));
-  floatVal =  malloc(sizeof(float));               // if multiple channels use numChan instead of one
-  unsignVal = malloc(sizeof(unsigned int));      // if multiple channels use numChan instead of one
-  charVal =   malloc(sizeof(MAX_CH_NAME));
-  
-  printf (" Getting CAEN data ....");  
-
-  for (ii=0; ii<indexMax; ii++){
-    if (hvptr->xx[ii].type == 1) {
-      /**/
-
-      getVMon(ii);
-      getIMon(ii);
-/*     
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, VMon, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting VMON from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vMeas = floatVal[0];   // (float)val;           // measured voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, IMon, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting IMon from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].iMeas = floatVal[0];   // (float)val;           // measured current
-      floatVal[0] = 0;
-*/
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V0Set, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting V0Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vSet = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I0Set, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting I0Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].iSet = floatVal[0];   // (float)val;           // set max current
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I1Set, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting I1Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].i1Set = floatVal[0];   // (float)val;           // set max current
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V1Set, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting V1Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].v1Set = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, SVMax, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting SVMax from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vMax = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RUp, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting vRamp from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vRamp = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RDWn, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting RDWn from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].downRamp = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Trip, one, &hvptr->xx[ii].chan, floatVal);
-      if (result != 0) printf("Error getting Trip from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].trip = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      /*      */
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, unsignVal);
-      if (result != 0) printf("Error getting PW (onoff) from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].onoff = (int) unsignVal[0];   // (float)val;           // get power PW as onoff
-      unsignVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripInt, one, &hvptr->xx[ii].chan, unsignVal);
-      if (result != 0) printf("Error getting TripInt from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].intTrip = (int) unsignVal[0];   // (float)val;           // get power PW as onoff
-      unsignVal[0] = 0;
-
-      result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripExt, one, &hvptr->xx[ii].chan, unsignVal);
-      if (result != 0) printf("Error getting TripExt from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].extTrip = (int) unsignVal[0];   // (float)val;           // get power PW as onoff
-      unsignVal[0] = 0;
-
-      result = CAENHV_GetChName(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, one, &hvptr->xx[ii].chan, charVal);
-      if (result != 0) printf("Error getting TripExt from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else strcpy(hvptr->xx[ii].name,charVal[0]);   // (float)val;           // get power PW as onoff
-      strcpy(charVal[0],"\0");
-
-    }
-  }
-  free(floatVal); free(ChList); free(unsignVal); free(charVal);
-  printf (".... finished\n");  
-  return;
-}
-/******************************************************************************/
-void caenSet() {
-/*
-   Get parameters from CAEN crates   
-*/
-  //int ii=0;
-  int result =0, one = 1;
-  //char V0Set[30]="V0Set\0";   //   V0Set  I0Set  IMon VMon
-  //char I0Set[30]="I0Set\0";   //   V0Set  I0Set  IMon VMon
-  //char VMon[30]="VMon\0";     //   V0Set  I0Set  IMon VMon
-  //char IMon[30]="IMon\0";     //   V0Set  I0Set  IMon VMon
-  char Pw[30]="Pw\0";         //   PW
-  float	         *floatVal  = NULL;
-  unsigned short *unsignVal = NULL;
-  unsigned short *ChList;
-
-  ChList =    malloc(sizeof(unsigned short));
-  floatVal =  malloc(sizeof(float));               // if multiple channels use numChan instead of one
-  unsignVal = malloc(sizeof(unsigned long int));      // if multiple channels use numChan instead of one
-
-  //    for (ii=0; ii<indexMax; ii++){
-      //for (ii=0; ii<5; ii++){
-  if (hvptr->xx[15].type == 1) {
-    /*
-      result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, VMon, one, &hvptr->xx[ii].chan, &floatVal);
-      if (result != 0) printf("Error setting VMON from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vMeas = floatVal[0];   // (float)val;           // measured voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, IMon, one, &hvptr->xx[ii].chan, &floatVal);
-      if (result != 0) printf("Error setting IMon from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].iMeas = floatVal[0];   // (float)val;           // measured current
-      floatVal[0] = 0;
-
-      result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V0Set, one, &hvptr->xx[ii].chan, &floatVal);
-      if (result != 0) printf("Error setting V0Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].vSet = floatVal[0];   // (float)val;           // set voltage
-      floatVal[0] = 0;
-
-      result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I0Set, one, &hvptr->xx[ii].chan, &floatVal);
-      if (result != 0) printf("Error setting I0Set from CAEN system %s handle %i\n",hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else hvptr->xx[ii].iSet = floatVal[0];   // (float)val;           // set max current
-      floatVal[0] = 0;
-
-	unsignVal[0] = hvptr->xx[ii].onoff;
-      result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, &unsignVal);
-      if (result != 0) printf("Error setting PW (onoff)for %s from CAEN system %s handle %i\n",hvptr->xx[ii].name,hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-      else printf("Error setting PW\n"); 
-      unsignVal[0] = 0;
-    */
-      
-      unsignVal[0] = hvptr->xx[15].onoff;
-      result = CAENHV_SetChParam(hvptr->xx[15].caenH, hvptr->xx[15].slot, Pw, one, &hvptr->xx[15].chan, &unsignVal);
-      if (result != 0) printf("Error = 0x%x setting PW (onoff) for %s from CAEN system %s handle %i\n",
-			      result,hvptr->xx[15].name,hvptr->xx[15].ip,hvptr->xx[15].caenH);
-      else printf("Successful setting PW\n"); 
-      unsignVal[0] = 0;
-
-    }
- 
-  free(floatVal); free(ChList), free(unsignVal);
-  return;
-}
-
-/******************************************************************************/
-void hvOnAll(){
-  int ii=0, result =0, one = 1;
-  char Pw[30]="Pw\0";                 //   PW
-  unsigned int *unsignVal = NULL;
-
-  unsignVal = malloc(sizeof(unsigned int));      // if multiple channels use numChan instead of one
-
-  for (ii=0; ii<hvptr->maxchan; ii++){
-    unsignVal[0] = 1;
-    result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, &unsignVal);
-    if (result != 0) printf("Error = 0x%x setting PW (onoff) for %s from CAEN system %s handle %i\n",
-			    result,hvptr->xx[ii].name,hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-    else {
-      printf("Successful setting PW %i \n", ii); 
-      hvptr->xx[ii].onoff = 1;
-    }
-  }
-  
-  free(unsignVal);
-  return;
-}
-
-/******************************************************************************/
-void hvOffAll(){
-  int ii=0, result =0, one = 1;
-  char Pw[30]="Pw\0";                 //   PW
-  unsigned int *unsignVal = NULL;
-
-  unsignVal = malloc(sizeof(unsigned int));      // if multiple channels use numChan instead of one
-
-  for (ii=0; ii<hvptr->maxchan; ii++){
-    unsignVal[0] = 0;
-    result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, &unsignVal);
-    if (result != 0) printf("Error = 0x%x setting PW (onoff) for %s from CAEN system %s handle %i\n",
-			    result,hvptr->xx[ii].name,hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-    else {
-      printf("Successful setting PW %i \n", ii); 
-      hvptr->xx[ii].onoff = 0;
-    }
-  }
-  
-  free(unsignVal);
-  return;
-}
-
-/******************************************************************************/
+/*NEEDS REDONE TWO FUNCS BELOW GETTEMP -> get temps from kelvin and change parms 
+needs to communicate to MPOD
+*******************************************************************************/
 void getTemp(){
-  int result=0, one=1;
-  int handle=0;
-  short unsigned int ii=0;
-  char Temp[30]="Temp\0";                 //   Temperature
-  unsigned int   *unsignVal = NULL;
-  unsigned short *slotList;
-  float	         *floatVal  = NULL;
-  
-  slotList  = malloc(sizeof(unsigned short));
-  unsignVal = malloc(sizeof(unsigned int));      // if multiple channels use numChan instead of one
-  floatVal = malloc(sizeof(float));      // if multiple channels use numChan instead of one
-  ii=-1;
-  while (++ii < 1000) {
-    if (hvptr->xx[ii].type == 1) {
-      handle = hvptr->xx[ii].caenH;
-      break;
-    }
-  }
-  
-  for (ii=0; ii<16; ii++){
-    if (hvptr->caenSlot[ii] > 0){
-      result = CAENHV_GetBdParam(handle, one, &ii, Temp, floatVal);
-      if (result != 0) printf("Error = %i (0x%x) getting temperature \n", result,result);
-      else {
-	//	printf("Successful getting temp %i ...", ii);
-	hvptr->caenTemp[ii] = floatVal[0];
-	//	printf("   %2.1f  \n", hvptr->caenTemp[ii]);
-      }
-    }
-  }
-  free(unsignVal); free(slotList); free(floatVal);
-  
+  /* Should talk to either log file or binary
+     with checks that it updates... */
   return;
 }
 
 /******************************************************************************/
 void changeParam(){
-  int ii = 0;
+  int ii = 0, ans;
   /*
  control variables:
   com0 = 16        selects this function
@@ -1378,49 +683,88 @@ void changeParam(){
   switch (hvptr->com2){
 
   case 1:
-    setV0Set(ii);
-    break;
+    if (hvptr->xx[ii].vSet == hvptr->xcom3)
+    {  return; 
+    } else 
+    {
+      hvptr->xx[ii].vSet = hvptr->xcom3;
+      setVolts(ii);  
+    }
+    hvptr->com2=20;
 
   case 2:
-    setI0Set(ii);
-    break;
+    if (hvptr->xx[ii].vSet == hvptr->xcom3)
+    {  return; 
+    } else 
+    {
+     hvptr->xx[ii].iSet = hvptr->xcom3;
+     setCurrent(ii);
+    }
+    hvptr->com2=20;
 
   case 3:
-    setPw(ii);
-    break;
+    if (hvptr->xx[ii].onoff == hvptr->xcom3)
+    {  return; 
+    } else 
+    {
+     hvptr->xx[ii].onoff = hvptr->xcom3;
+     setOnOff(ii);
+    }
+    hvptr->com2=20;
 
   case 4:
-    setRUp(ii);
-    break;
+    if (hvptr->xx[ii].vRamp == hvptr->xcom3)
+    {  return; 
+    } else 
+    {
+     hvptr->xx[ii].vRamp = hvptr->xcom3;
+     setRampUp(ii);
+    }
+    hvptr->com2=20;
 
   case 5:
-    setV1Set(ii);
-    break;
+    //setV1Set(ii);
+    hvptr->com2=20;
 
   case 6:
-    setI1Set(ii);
-    break;
+    //setI1Set(ii);
+    hvptr->com2=20;
 
   case 7:
-    setSVMax(ii);
-    break;
+    //setSVMax(ii);
+    hvptr->com2=20;
 
   case 8:
-    setRDWn(ii);
-    break;
+    //setRDWn(ii);
+    hvptr->com2=20;
 
   case 9:
-    setTrip(ii);
-    break;
+    //setTrip(ii);
+    hvptr->com2=20;
 
   case 10:
-    setTripInt(ii);
-    break;
+    //setTripInt(ii);
+    hvptr->com2=20;
 
    case 11:
-    setTripExt(ii);
-    break;
-  
+    //setTripExt(ii);
+    hvptr->com2=20;
+  case 20:
+    printf("Are you finished with this detector? (1=yes, 0=no)");
+    ans = scan2int();
+    if (ans == 1) 
+    {
+      break;
+    } else if (ans == 0) 
+    {
+      printf ("Which detector number to change ?\n");
+      ans = scan2int ();
+      hvptr->com2= ans;
+     } else 
+     {
+       printf("N/A");
+       break;
+     }
   default:
     break;
   }
@@ -1428,479 +772,53 @@ void changeParam(){
 
   return;
 }
-/******************************************************************************/
-void getVMon(int ii){
-  char VMon[30]="VMon\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, VMon, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting VMon for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].vMeas = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getIMon(int ii){
-  char IMon[30]="IMon\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, IMon, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting IMon for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].iMeas = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getV0Set(int ii){
-  char V0Set[30]="V0Set\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V0Set, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting V0Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].vSet = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setV0Set(int ii){
-  char V0Set[30]="V0Set\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].vSet == hvptr->xcom3) return;
+//******************************************************************/
+int scan2int () {
+  char sss[200];
+  long int ii=0;
   
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V0Set, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting V0Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set voltage
-  free (floatVal);
-
-  return;
+  scanf("%s",sss);
+  ii=strtol(sss,NULL,10);                            // convert to base 10
+  if ((ii == 0) && (strcmp(sss,"0") != 0)) ii = -1;  // check if 0 result is 0 or because input is not number
+  return ((int) ii);
 }
 
-/******************************************************************************/
-void getI0Set(int ii){
-  char I0Set[30]="I0Set\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I0Set, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting I0Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].iSet = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setI0Set(int ii){
-  char I0Set[30]="I0Set\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].iSet == hvptr->xcom3) return;
+/**************************************************************/
+float scan2float () {
+  char sss[200];
+  float ff=0;
   
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I0Set, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting I0Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
+  scanf("%s",sss);
+  ff=atof(sss);                            // convert to base 10
+  return (ff);
 }
-
-/******************************************************************************/
-/******************************************************************************/
-/*
-char V0Set[30]="V0Set\0";       //   V0Set  
-  char I0Set[30]="I0Set\0";       //   I0Set  
-  char VMon[30]="VMon\0";         //   VMon
-  char IMon[30]="IMon\0";         //   IMon 
-  char Pw[30]="Pw\0";             //   PW
-  char V1Set[30]="V1Set\0";       //   V1Set
-  char I1Set[30]="I1Set\0";       //   I1Set
-  char SVMax[30]="SVMax\0";       //   V0Set  I0Set  IMon VMon
-  char Trip[30]="Trip\0";         //   SVMax
-  char RUp[30]="RUp\0";           //   RUp
-  char RDWn[30]="RDWn\0";         //   RDWn
-  char TripInt[30]="TripInt\0";   // TripInt
-  char TripExt[30]="TripExt\0";   // TripExt
-*/
-
-/******************************************************************************/
-/******************************************************************************/
-void getV1Set(int ii){
-  char V1Set[30]="V1Set\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V1Set, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting V1Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].v1Set = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
+/**************************************************************/
+void setVolts(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputVoltage.u%i F %f",  hvptr->xx[ii].chan,hvptr->xx[ii].vSet);
+  snmp(1,indexMax,cmd,cmdRes);   
 }
-
-/******************************************************************************/
-void setV1Set(int ii){
-  char V1Set[30]="V1Set\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].v1Set == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, V1Set, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting V1Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
+/**************************************************************/ 
+void setRampUp(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputVoltageRiseRate.u%i F %f", hvptr->xx[ii].chan,hvptr->xx[ii].vRamp);
+  snmp(1,indexMax,cmd,cmdRes);    
+}      
+/**************************************************************/
+void setCurrent(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputCurrent.u%i F %f",hvptr->xx[ii].chan,hvptr->xx[ii].iSet);
+  snmp(1,indexMax,cmd,cmdRes);  
 }
-/******************************************************************************/
-void getI1Set(int ii){
-  char I1Set[30]="I1Set\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I1Set, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting I1Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].i1Set = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
+/**************************************************************/
+void setOnOff(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+      /*if getTempChan(indexMax) > allowed
+        sprintf(cmd, "outputSwitch.u%i I %i",chan, 0);
+        snmp(1,indexMax,cmd,cmdRes);
+        hvptr->xx[indexMax].onOff = 0; 
+      else */
+  sprintf(cmd, "outputSwitch.u%i I %i",hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
+  snmp(1,indexMax,cmd,cmdRes);
 }
-
-/******************************************************************************/
-void setI1Set(int ii){
-  char I1Set[30]="I1Set\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].i1Set == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, I1Set, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting I1Set for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-/******************************************************************************/
-void getSVMax(int ii){
-  char SVMax[30]="SVMax\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, SVMax, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting SVMax for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].vMax = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setSVMax(int ii){
-  char SVMax[30]="SVMax\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].vMax == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, SVMax, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting SVMax for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getRUp(int ii){
-  char RUp[30]="RUp\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RUp, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting RUp for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].vRamp = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setRUp(int ii){
-  char RUp[30]="RUp\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].vRamp == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RUp, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting RUp for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getRDWn(int ii){
-  char RDWn[30]="RDWn\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RDWn, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting RDWn for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].downRamp = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setRDWn(int ii){
-  char RDWn[30]="RDWn\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].downRamp == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, RDWn, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting RDWn for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getTrip(int ii){
-  char Trip[30]="Trip\0";       //   V0Set  
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Trip, one, &hvptr->xx[ii].chan, floatVal);
-  if (result != 0) printf("Error getting Trip for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].trip = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setTrip(int ii){
-  char Trip[30]="Trip\0";       //   I0Set
-  int one=1;
-  int result=0;
-  float	         *floatVal  = NULL;
-
-  if (hvptr->xx[ii].trip == hvptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Trip, one, &hvptr->xx[ii].chan, &floatVal);
-  if (result != 0) printf("Error setting Trip for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getTripInt(int ii){
-  char TripInt[30]="TripInt\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripInt, one, &hvptr->xx[ii].chan, unsignVal);
-  if (result != 0) printf("Error setting TripInt for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].intTrip = unsignVal[0];   // (float)val;           // set voltage
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setTripInt(int ii){
-  char TripInt[30]="TripInt\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  if (hvptr->xx[ii].intTrip == hvptr->com3) return;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-  unsignVal[0] = hvptr->com3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripInt, one, &hvptr->xx[ii].chan, &unsignVal);
-  if (result != 0) printf("Error setting TripInt for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set internal trip
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getTripExt(int ii){
-  char TripExt[30]="TripExt\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripExt, one, &hvptr->xx[ii].chan, unsignVal);
-  if (result != 0) printf("Error setting TripExt for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].extTrip = unsignVal[0];   // (float)val;           // set voltage
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setTripExt(int ii){
-  char TripExt[30]="TripExt\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  if (hvptr->xx[ii].extTrip == hvptr->com3) return;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-  unsignVal[0] = hvptr->com3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, TripExt, one, &hvptr->xx[ii].chan, &unsignVal);
-  if (result != 0) printf("Error setting TripExt for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set internal trip
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getPw(int ii){
-  char Pw[30]="Pw\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-
-  result = CAENHV_GetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, unsignVal);
-  if (result != 0) printf("Error setting Pw for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else hvptr->xx[ii].onoff = unsignVal[0];   // (float)val;           // set voltage
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void setPw(int ii){
-  char Pw[30]="Pw\0";       //   I0Set
-  int one=1;
-  int result=0;
-  unsigned int   *unsignVal = NULL;
-
-  if (hvptr->xx[ii].onoff == hvptr->com3) return;
-
-  unsignVal =  malloc(one * sizeof(unsigned int));               // if multiple channels use numChan instead of one
-  unsignVal[0] = hvptr->com3;
-  result = CAENHV_SetChParam(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, Pw, one, &hvptr->xx[ii].chan, &unsignVal);
-  if (result != 0) printf("Error setting HV ON/OFF for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else printf("Success\n");            // set internal trip
-  free (unsignVal);
-
-  return;
-}
-
-/******************************************************************************/
-void getName(int ii){
-  int one=1;
-  int result=0;
-  char  (*charVal)[MAX_CH_NAME];
-
-  charVal =   malloc(sizeof(MAX_CH_NAME));
-
-  result = CAENHV_GetChName(hvptr->xx[ii].caenH, hvptr->xx[ii].slot, one, &hvptr->xx[ii].chan, charVal);
-  if (result != 0) printf("Error getting NAME for det %i from CAEN system %s handle %i\n",ii, hvptr->xx[ii].ip,hvptr->xx[ii].caenH);
-  else strcpy(hvptr->xx[ii].name,charVal[0]);   // (float)val;           // get power PW as onoff
-
-  free (charVal);
-
-  return;
-}
-
-/******************************************************************************/
+/**************************************************************/

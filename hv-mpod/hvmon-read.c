@@ -179,7 +179,7 @@ void menu(){
   printf ("\nOptions ? \n");
   printf ("    1 - display current high voltage data (does not read or change interval) \n");
   printf ("    2 - force a read of current high voltage data \n");
-  printf ("    3 - read temps only");
+  printf ("    3 - force a read of temps only");
   printf (" \n");
   printf ("    4 - End log file \n");
   //  printf ("    5 - End DAQ logging \n");
@@ -597,13 +597,13 @@ void detParam() {
   case 8:
     printf ("What voltage ramp-down setting? < 50 V/s \n");
     yy = scan2float();
-    if (yy <= 50.0) hvptr->xcom3 = yy;
+    if (yy < 50.0) hvptr->xcom3 = yy;
     else hvptr->xcom3 = hvptr->xx[ii].downRamp;
     break;
   case 9:
     printf ("What trip setting? < 11 s \n");
     yy = scan2float();
-    if (yy <= 10.0) hvptr->xcom3 = yy;
+    if (yy < 11.0) hvptr->xcom3 = yy;
     else hvptr->xcom3 = hvptr->xx[ii].trip;
     break;
    case 10:
