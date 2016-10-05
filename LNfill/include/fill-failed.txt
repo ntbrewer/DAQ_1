@@ -1,9 +1,0 @@
-Subject: LNFILL Failed
-
-Hi Carl,
-
-Problem with LNfill occurred.
-
-Carl
-
-(This message sent by the program)

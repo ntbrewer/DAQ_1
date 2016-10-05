@@ -1,6 +1,0 @@
-
-lnfill-u6:
-gcc -lc -llabjackusb u6.o -o lnfill-u6 lnfill-u6-v6.c
-
-lnfill-u6-read:
-gcc -o lnfill-u6-read lnfill-u6-read.c

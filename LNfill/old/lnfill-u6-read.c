@@ -10,7 +10,7 @@
 
 */
 
-#include "lnfill.h"
+#include "../include/lnfill.h"
 void updateRTD();
 void inactiveList();
 int activeList();
@@ -19,18 +19,23 @@ void menu();
 void addresses();
 void parametersGe(int ii);
 void parametersTank();
+int mmapSetup();                 // sets up the memory map
 
 /***********************************************************/
 int main(int argc, char **argv){
 
   int ii=0, ans=0, nn=0;
-  int det=0, activemax;
-  char zzz[100]="\0";
-  struct dewar zz;
+  int det=0;
+  char yn[100]="\0";
+  int mapLNfill;
+  
+//  shmSetup();
+  mapLNfill = mmapSetup();
+  if (mapLNfill == -1) return 0;
 
 /*
   Shared memory creation and attachment
-*/  
+ 
 //  shmKey = ftok("/Users/c4g/src/LNfill/include/lnfill.conf",'b');       // key unique identifier for shared memory, other programs use 'LN' tag
 //  shmKey = ftok("/Users/c4g/src/LNfill/include/lnfill.conf",'b');  // key unique identifier for shared memory, other programs use include this
   shmKey = ftok("include/lnfill.conf",'b');  // key unique identifier for shared memory, other programs use include this
@@ -40,8 +45,10 @@ int main(int argc, char **argv){
   lnptr = shmat (shmid, (void *)0, 0);                              // now link to area so it can be used; struct lnfill pointer char *lnptr
   if (lnptr == (struct lnfill *)(-1)){                              // check for errors
     perror("shmat");
-    exit;
+    exit(EXIT_FAILURE);
   }
+*/
+
   //  printf ("%li = %li\n",shmKey, shmid);
   /*  
 
@@ -55,7 +62,10 @@ int main(int argc, char **argv){
  
     switch (ans){
     case 0:                   // end program but not lnfill
-      shmdt(lnptr);           // detach from shared memory segment
+      if (munmap(lnptr, sizeof (struct lnfill*)) == -1) {
+	perror("Error un-mmapping the file");
+      }
+      //shmdt(lnptr);           // detach from shared memory segment
       return 0;
       break;
 
@@ -66,6 +76,7 @@ int main(int argc, char **argv){
       break;
 
     case 2:                    // Change limit and timing parameters
+      if (lnptr->command == 8 || lnptr->command == 7 || lnptr->command == 18) break;  // don't force an update
       printf (" Which detector do you want to change? 1-20, outside this range to do nothing \n");
       scanf("%i",&det);
       if ((det > 0) && (det < 21)){
@@ -96,9 +107,11 @@ int main(int argc, char **argv){
       }
       */
       break;
-/*
+
     case 3:                   // Add or remove detector from system
-      inactiveList();
+      activeList();
+      break;
+/*
       activemax = activeList();
       printf (" Which detector do you want to change? 1-20, outside this range to do nothing \n");
       scanf("%i",&det);
@@ -260,6 +273,15 @@ int main(int argc, char **argv){
     case 18:                   // do initial cool down of a detector
 
       printf (" Do you really want to reset all alarms?  y/n \n");
+      scanf("%s",yn);
+      if (strcmp(yn,"Y") == 0 || strcmp(yn,"y") == 0) { 
+	//      if (yn == 'Y' || yn == 'y'){
+	for (ii=0; ii < 20; ii++){
+	  if (lnptr->ge[det].onoff == 1) strcpy(lnptr->ge[ii].status,"OK");
+	  else strcpy(lnptr->ge[ii].status,"OFF");
+	}
+      } else printf ("No alarms were reset");
+      /*
       scanf("%1s",&zzz);
       if (strcmp(zzz,"Y") == 0 || strcmp(zzz,"y") == 0) { 
 	for (ii=0; ii < 20; ii++){
@@ -267,8 +289,41 @@ int main(int argc, char **argv){
 	  else strcpy(lnptr->ge[ii].status,"OFF");
 	}
       }
+      */
       break;
 
+    case 19:
+      if (lnptr->com2 == 0) {
+	printf (" Do you really want to toggle the LN HV Emergency Shutdown ON?  y/n \n");
+     	scanf("%s",yn);
+	if (strcmp(yn,"Y") == 0 || strcmp(yn,"y") == 0) { 
+	//	if (yn == 'Y' || yn == 'y'){
+	//	scanf("%1s",&zzz);
+	  printf (" Turning emergency shutdown ON \n If shutdown occurs you must run bash script to clear events and shutdown!\n");
+	  lnptr->com2 = 1;
+	  printf (" Emergency shutdown is ON \n");
+	}
+	else {
+	  printf (" Emergency shutdown is staying OFF \n");
+	}
+      }
+      else {
+	printf (" Do you really want to toggle the LN Emergency Shutdown OFF?  y/n \n");
+     	scanf("%s",yn);
+	if (strcmp(yn,"Y") == 0 || strcmp(yn,"y") == 0) { 
+	//	char yn = getchar();
+	  //	if (yn == 'Y' || yn == 'y'){
+	  //	scanf("%1s",&zzz);
+	  printf (" Turning emergency shutdown OFF \n You better know that the Ge detectors are COLD! \n And remember to turn it back on when done !\n");
+	  lnptr->com2 = 0;
+	  printf (" Emergency shutdown is OFF \n");
+	}
+	else {
+	  printf (" Emergency shutdown is staying ON \n");
+	}
+      }
+      break;
+	
     case 61:                    // Get valve status directly from ibootbar 
       printf ("Input email addresses  \n");
       addresses();
@@ -283,16 +338,56 @@ int main(int argc, char **argv){
       break;      
     }  
   }
+
 /*
    Wrap up the program ending the lnfill-u6, detaching and getting rid of the shared memory segment
 */  
   lnptr->command=-1;
   kill(lnptr->pid,SIGALRM);
 
+/*
+   Release the shared memory and close the U3
+
+*/
+  if (munmap(lnptr, sizeof (struct lnfill*)) == -1) {
+    perror("Error un-mmapping the file");
+/* Decide here whether to close(fd) and exit() or not. Depends... */
+  }
+  close(mapLNfill);
+/*
   shmdt(lnptr);                      // detach from shared memory segment
   shmctl(shmid, IPC_RMID, NULL);     // remove the shared memory segment hopefully forever
-
+*/
   return 0;
+}
+/**************************************************************/
+int mmapSetup() {
+  int fd=0;     // mapped file descriptor
+
+  /* Open a file for writing.
+   *  - Creating the file if it doesn't exist.
+   *  - Truncating it to 0 size if it already exists. (not really needed)
+   *
+   * Note: "O_WRONLY" mode is not sufficient when mmaping.
+   */
+  fd = open(LNFILLDATAPATH, O_RDWR, (mode_t)0600);
+  if (fd == -1) {
+    perror("Error opening file path for writing");
+    exit(EXIT_FAILURE);
+  }
+        
+  /* Now the file is ready to be mmapped.
+   */
+  lnptr = (struct lnfill*) mmap(0, LNFILLDATASIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (lnptr == MAP_FAILED) {
+    close(fd);
+    perror("Error mmapping the file");
+    exit(EXIT_FAILURE);
+  }
+  /* Don't forget to free the mmapped memory ... usually at end of main
+   */
+   
+  return (fd);
 }
 
 /***********************************************************/
@@ -319,17 +414,17 @@ void updateRTD(){
 
 /***********************************************************/
 
-
 int activeList(){
   long int ii=0, activemax=0;
 
-  printf("\n Inactive detectors\n");
-  printf("Det    RTD    RTD-LIMIT    STATUS     \n");
-  printf("---   -----   ---------   ---------   \n");
+  printf("\n Active detectors\n");
+  printf("Det    RTD    RTD-LIMIT    STATUS    LAST FILL(s)   NEXT FILL(s)  \n");
+  printf("---   -----   ---------   ---------  ------------   -------------\n");
   for (ii=0; ii<20; ii++){
     if (lnptr->ge[ii].onoff == 1){
       activemax++;
-      printf(" %.2li   %4.0lf     %4.0lf        %s \n", ii, lnptr->ge[ii].rtd, lnptr->ge[ii].limit, lnptr->ge[ii].status);
+      printf(" %.2li   %4.0lf     %4.0lf        %6s         %.0lf        %6.0lf \n", ii, lnptr->ge[ii].rtd, lnptr->ge[ii].limit, lnptr->ge[ii].status,lnptr->ge[ii].last,lnptr->ge[ii].next-time(NULL));
+      printf(" %.2li   %4.0lf     %4.0lf        %6s         %.0lf        %6.0lf \n", ii, lnptr->ge[ii].rtd, lnptr->ge[ii].limit, lnptr->ge[ii].status,lnptr->ge[ii].last,lnptr->ge[ii].next);
     }
   }
 
@@ -362,7 +457,7 @@ void saveSetup(){
   FILE *ofile;
   //  char lnfill_conf[200]="/Users/c4g/src/LNfill/include/lnfill.conf";   //see define statement in lnfill.h 
   char lnfill_conf[200]="include/lnfill.conf";   //see define statement in lnfill.h 
-  long int ii=0;
+  int ii=0;
   //  char line[200]="\0";
   //  int onoff=0, chanRTD=0, chanOFLO=0;
   //  char name[10]="\0";
@@ -389,7 +484,7 @@ void saveSetup(){
 
   for (ii=0; ii<20; ii++){
 
-    fprintf(ofile,"%2i    %3s      %i     %5.0lf    %3.0lf     %3.0lf     %2i      %2i      %3.0lf      %3.0lf     %3i \n", ii+1, 
+    fprintf(ofile,"%2i    %3s      %i     %0.lf    %3.0lf     %3.0lf     %2i      %2i      %3.0lf      %3.0lf     %3i \n", ii+1, 
 	    lnptr->ge[ii].name, lnptr->ge[ii].onoff,   lnptr->ge[ii].interval, lnptr->ge[ii].max,    
 	    lnptr->ge[ii].min,  lnptr->ge[ii].chanRTD, lnptr->ge[ii].chanOFLO, lnptr->ge[ii].limit,
 	    lnptr->ge[ii].olimit, lnptr->ge[ii].chanIbar);
@@ -415,56 +510,67 @@ void menu(){
   }
   ii = 0;
   curtime = time(NULL);
-
-
-  printf ("----------------------------------------------------------------------------\n");
-  printf ("     Detectors       |         Manual          | Det - RTD/LIM - Next fill   \n");
-  printf ("----------------------------------------------------------------------------\n");
-  if (activemax > 0) 
-    printf ("1 - status           | 10 - close all & vent   | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[0]].name,lnptr->ge[active[0]].rtd,lnptr->ge[active[0]].limit,lnptr->ge[active[0]].next-curtime,lnptr->ge[active[0]].status);
+  //  xtime = (double) curtime;
+  printf("activemax %i\n",activemax);
+  printf ("---------------------------------------------------------------------------------------\n");
+  printf ("     Detectors       |         Manual          | Det - RTD/LIM -OFLO/OLIM- Next fill   \n");
+  printf ("---------------------------------------------------------------------------------------\n");
+  if (activemax > 0) //  - %.0lf/%.0lf - %.0lf/%.0lf - %li - %s\n",
+    printf ("1 - status           | 10 - close all & vent   | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[0]].name,lnptr->ge[active[0]].rtd,lnptr->ge[active[0]].limit,lnptr->ge[active[0]].oflo,lnptr->ge[active[0]].olimit,lnptr->ge[active[0]].next-curtime,lnptr->ge[active[0]].status);
+  //	    lnptr->ge[active[0]].name,lnptr->ge[active[0]].rtd,lnptr->ge[active[0]].limit,lnptr->ge[active[0]].oflo,lnptr->ge[active[0]].olimit,lnptr->ge[active[0]].next-curtime);//,lnptr->ge[active[0]].status);
+	    //	    lnptr->ge[active[0]].name,lnptr->ge[active[0]].rtd,lnptr->ge[active[0]].limit,lnptr->ge[active[0]].oflo,lnptr->ge[active[0]].olimit,lnptr->ge[active[0]].next-xtime,lnptr->ge[active[0]].status);
   else
     printf ("1 - status           | 10 - close all & vent   |         \n");
 
   if (activemax > 1) 
-    printf ("2 - alter parameters | 11 - close tank         | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[1]].name,lnptr->ge[active[1]].rtd,lnptr->ge[active[1]].limit,lnptr->ge[active[1]].next-curtime,lnptr->ge[active[1]].status);
+    printf ("2 - alter parameters | 11 - close tank         | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[1]].name,lnptr->ge[active[1]].rtd,lnptr->ge[active[1]].limit,lnptr->ge[active[1]].oflo,lnptr->ge[active[1]].olimit,lnptr->ge[active[1]].next-curtime,lnptr->ge[active[1]].status);
   else
     printf ("2 - alter parameters | 11 - close tank         |         \n");
 
   if (activemax > 2) 
-    printf ("                     | 12 - open tank          | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[2]].name,lnptr->ge[active[2]].rtd,lnptr->ge[active[2]].limit,lnptr->ge[active[2]].next-curtime,lnptr->ge[active[2]].status);
+    printf ("3 - list active      | 12 - open tank          | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[2]].name,lnptr->ge[active[2]].rtd,lnptr->ge[active[2]].limit,lnptr->ge[active[2]].oflo,lnptr->ge[active[2]].olimit,lnptr->ge[active[2]].next-curtime,lnptr->ge[active[2]].status);
   else
-    printf ("                     | 12 - open tank          |          \n");
+    printf ("3 - list active      | 12 - open tank          |          \n");
 
   if (activemax > 3) 
-    printf ("4 - list inactive    | 13 - close manifold     | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[3]].name,lnptr->ge[active[3]].rtd,lnptr->ge[active[3]].limit,lnptr->ge[active[3]].next-curtime,lnptr->ge[active[3]].status);
+    printf ("4 - list inactive    | 13 - close manifold     | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[3]].name,lnptr->ge[active[3]].rtd,lnptr->ge[active[3]].limit,lnptr->ge[active[3]].oflo,lnptr->ge[active[3]].olimit,lnptr->ge[active[3]].next-curtime,lnptr->ge[active[3]].status);
   else
     printf ("4 - list inactive    | 13 - close manifold     |          \n");
 
   if (activemax > 4) 
-    printf ("5 - save parameters  | 14 - open manifold      | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[4]].name,lnptr->ge[active[4]].rtd,lnptr->ge[active[4]].limit,lnptr->ge[active[4]].next-curtime,lnptr->ge[active[4]].status);
+    printf ("5 - save parameters  | 14 - open manifold      | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[4]].name,lnptr->ge[active[4]].rtd,lnptr->ge[active[4]].limit,lnptr->ge[active[4]].oflo,lnptr->ge[active[4]].olimit,lnptr->ge[active[4]].next-curtime,lnptr->ge[active[4]].status);
   else
     printf ("5 - save parameters  | 14 - open manifold      |             \n");
   if (activemax > 5) 
-    printf ("                     | 15 - close a valve      | %3s - %.0lf/%.0lf - %.0lf - %s\n",
-	    lnptr->ge[active[5]].name,lnptr->ge[active[5]].rtd,lnptr->ge[active[5]].limit,lnptr->ge[active[5]].next-curtime,lnptr->ge[active[5]].status);
+    printf ("                     | 15 - close a valve      | %3s - %.0lf/%.0lf - %.0lf/%.0lf - %.0lf - %s\n",
+	    lnptr->ge[active[5]].name,lnptr->ge[active[5]].rtd,lnptr->ge[active[5]].limit,lnptr->ge[active[5]].oflo,lnptr->ge[active[5]].olimit,lnptr->ge[active[5]].next-curtime,lnptr->ge[active[5]].status);
   else
     printf ("                     | 15 - close a valve      |          \n");
 
   printf ("7 - fill 1 detector  | 16 - open a valve       |                      \n");
   printf ("8 - fill ALL         |                         |                      \n");
-  printf ("9 - initial fill     | 17 - hardware status    | TANK - %.1lf psi - %s \n",lnptr->tank.pressure,lnptr->tank.status);
-  printf ("----------------------------------------------------------------------------\n");
+  printf ("9 - initial fill     | 17 - hardware status    | TANK - %.1lf psi - %.0lf/%.0lf - %s \n",lnptr->tank.pressure,lnptr->tank.rtd,lnptr->tank.olimit,lnptr->tank.status);
+  printf ("---------------------------------------------------------------------------------------\n");
   printf ("18 - reset alarms    | %s  | Time up - %li s            \n",lnptr->bitstatus,lnptr->secRunning);
-  printf ("----------------------------------------------------------------------------\n");
+  if (lnptr->com2 == 1) {
+    printf ("19 - Shutdown HV     |                         |   is ON          \n");
+  }
+  else {
+    printf ("19 - Shutdown HV     |                         |   is OFF       \n");
+  }
+  printf ("---------------------------------------------------------------------------------------\n");
   printf ("61 - email addresses | Number addresses = %2i   | %s \n", lnptr->maxAddress,lnptr->comStatus);
-  printf ("----------------------------------------------------------------------------\n");
-  printf ("0 - end this program | 100 - end all LNfill    | ipcrm -m (SHM PID = %li)\n",lnptr->shm);
-  printf ("----------------------------------------------------------------------------\n");
+  printf ("---------------------------------------------------------------------------------------\n");
+  printf ("0 - end this program | iBootbar IP address     | %s \n", lnptr->ibootbar_IP);
+  printf ("100 - end all LNfill | MPOD     IP address     | %s \n", lnptr->mpod_IP);
+  printf ("---------------------------------------------------------------------------------------\n");
+  //  printf ("0 - end this program | 100 - end all LNfill    |                  \n");
+  //  printf ("---------------------------------------------------------------------------------------\n");
 
   //  printf ("1:%c 2:%c 3:%c 4:%c 5:%c 6:%c 7:%c 8:%c \n",lnptr->bitstatus);
 
@@ -571,7 +677,7 @@ void parametersGe(int ii){
   time_t curtime;
   char zz[100]="\0";
   double xx=0.;
-
+  long int pp=0;
 
 
   while (jj != 99){
@@ -581,8 +687,8 @@ void parametersGe(int ii){
     printf ("----------------------------------------------------------------------------\n");
     printf ("1 - on/off toggle      | %3i       | 11 - RTD chan       | %i \n",lnptr->ge[ii].onoff,lnptr->ge[ii].chanRTD);
     printf ("2 - name               | %3s       | 12 - OFLO chan      | %i \n",lnptr->ge[ii].name,lnptr->ge[ii].chanOFLO);
-    printf ("3 - fill interval      | %6.0lf    | 13 - Ibar chan      | %i \n",lnptr->ge[ii].interval,lnptr->ge[ii].chanIbar + 1);
-    printf ("4 - max fill interval  | %6.0lf    | 14 - next fill      | %.0lf \n",lnptr->ge[ii].max,lnptr->ge[ii].next-(double)time(NULL));//lnptr->ge[ii].next);
+    printf ("3 - fill interval      | %0.lf       | 13 - Ibar chan      | %i \n",lnptr->ge[ii].interval,lnptr->ge[ii].chanIbar + 1);
+    printf ("4 - max fill interval  | %6.0lf    | 14 - next fill      | %0.lf \n",lnptr->ge[ii].max,lnptr->ge[ii].next-time(NULL));
     printf ("5 - min fill interval  | %6.0lf    | 15 -  \n",lnptr->ge[ii].min);
     printf ("6 - detector RTD limit | %6.0lf    | 16 -  \n",lnptr->ge[ii].limit);
     printf ("7 - overflow RTD limit | %6.0lf    | 17 - change TANK parameters  \n",lnptr->ge[ii].olimit);
@@ -685,13 +791,14 @@ void parametersGe(int ii){
 	break;
 
       case 14:
-	printf("Next fill occurs in ~%0.lf seconds ? (< 0.99 do nothing) \n",lnptr->ge[ii].next-(double)time(NULL));
+	curtime=time(NULL);
+	printf("Next fill occurs in ~%.0lf seconds ? (< 0.99 do nothing) \n",lnptr->ge[ii].next-(double)curtime);
 	printf("x hr in Y s: 1=3600, 2=7200, 3=10800, 4=14400, 5=18000, 6=21600, 7=25200, 8=28800  \n");
 	scanf ("%s", zz);          // read in ans (pointer is indicated)     
-	xx = atof(zz);
-	if (xx >= 1) {
+	pp = atol(zz);
+	if (pp >= 1) {
 	  //	  lnptr->ge[ii].next = xx;
-	  lnptr->ge[ii].next = time(NULL) + xx;
+	  lnptr->ge[ii].next = curtime + pp;
 	}
 	break;
 
@@ -725,7 +832,7 @@ void parametersTank(){
     printf ("----------------------------------------------------------------------------\n");
     printf ("  Software parameter   |  Value  | Hardware parameter       |  Value \n");
     printf ("----------------------------------------------------------------------------\n");
-    printf ("1 - Manifold RTD chan  | %3i     | 4 - Manifold RTD limit  | %i \n",lnptr->tank.chanRTD,lnptr->tank.limit);
+    printf ("1 - Manifold RTD chan  | %3i     | 4 - Manifold RTD limit  | %.0lf \n",lnptr->tank.chanRTD,lnptr->tank.limit);
     printf ("                       |         | 5 - Tank Pressure       | %i \n",lnptr->tank.chanPRES);
     printf ("3 - Tank valve chan    | %3i     | 6 - Manifold valve chan | %i \n",lnptr->tank.chanIbar + 1,lnptr->tank.chanMani + 1);
     printf ("----------------------------------------------------------------------------\n");
