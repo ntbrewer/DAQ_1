@@ -61,7 +61,7 @@ struct thermometer {
   unsigned short int timeMSB;  // time data for daq...note that this isn't really needed given the pixie data is 32-bit
   unsigned short int timeLSB;  // time data for daq
   union tclk tim;              // union to break up int time into 2 short unsigned ints for daq
-  struct therm temps[10];      // thermometer information  
+  struct therm temps[16];      // thermometer information  
 };      // deg;
 
   struct thermometer *degptr; 
