@@ -9,6 +9,7 @@
 
 #include "../include/hvmon.h"
 
+
 int mmapSetup();                  // sets up the memory map
 void menu();
 void menu1();
@@ -16,8 +17,13 @@ int scan2int ();
 void printOut();
 void fprintOut();
 void printActive();
-void printDeactive();
+void printInactive();
+void printAvailable();
 void clone();
+void snmp(int setget, int ii, char *cmd, char *cmdResult);
+int readOnOff(char *cmdResult);
+void setHVmpod(int nf);
+void setOnOff(int ii);
 //void hvOnAll();
 //void hvOffAll();
 void saveSetup();
@@ -68,25 +74,28 @@ int main(int argc, char **argv){
 
     case 2:                      // display temps and limits
       printOut();
-      hvptr->com0 = 2;           // command (3) stored in SHM so kelvin can do something
-      kill(hvptr->pid,SIGALRM);  // send an alarm to let kelvin know it needs to do command (1)
-      sleep(1);                   // sleep for a second to allow kelvin to read new values
+      hvptr->com0 = 2;           // command (3) stored in SHM so  hvmon can do something
       printOut();
   
       break;
 
     case 3:                      // display temps and limits
       printOut();
-      hvptr->com0 = 3;            // command (3) stored in SHM so kelvin can do something
-      kill(hvptr->pid,SIGALRM);   // send an alarm to let kelvin know it needs to do command (1)
-      sleep(1);                   // sleep for a second to allow kelvin to read new values
+      hvptr->com0 = 3;            // command (3) stored in SHM so hvmon can do something
       printOut();
   
       break;
 
     case 4:                      // display temps and limits
       printf("HV on...\n");
-      hvptr->com0 = 4;
+      //hvptr->com0 = 4;
+      /*char cmdResult[140]="\0";
+      int onOff=100;
+      snmp(0,0,"outputSwitch.u300",cmdResult);
+      onOff = readOnOff(cmdResult);
+      printf("%s :cmd, %i : onOFF", cmdResult, onOff);
+      */
+      setHVmpod(1);
 
       break;
 
@@ -94,7 +103,7 @@ int main(int argc, char **argv){
       printf("HV off...\n");
       hvptr->com0 = 5;
       break;
-    case 6:                      // display temps and limits
+    case 6:                      // Save Config File
       printf("Saving file...\n");
       openSaveFile();
       fprintOut();
@@ -114,8 +123,9 @@ int main(int argc, char **argv){
       printActive();
       break;
 
+
     case 9:
-      printDeactive();
+      printInactive();
       break;
 
     case 11:                      // display temps and limits
@@ -132,8 +142,8 @@ int main(int argc, char **argv){
       break;
 
     case 16:                      // display temps and limits
-      printf ("Alter parameters ?\n");
-      printActive();
+      printf ("Alter parameters.\n");
+      printAvailable();
       detParam();
       hvptr->com0=16;
       kill(hvptr->pid,SIGALRM);   // send an alarm to let kelvin know it needs to do command (1)
@@ -172,23 +182,114 @@ int main(int argc, char **argv){
 
   return 0;
 }
+/**************************************************************/
+void setOnOff(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  if ( hvptr->xx[ii].slot ==0 ) 
+  {
+    sprintf(cmd, "outputSwitch.u%i i %i", hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
+  } else 
+  {
+    sprintf(cmd, "outputSwitch.u%i0%i i %i", hvptr->xx[ii].slot, hvptr->xx[ii].chan,hvptr->xx[ii].onoff);
+  }
 
-/***********************************************************/
-void menu(){
+  snmp(1,ii,cmd,cmdRes);
+  return;
+}
+/******************************************************************************/
+void setHVmpod(int nf) {
+  int ii=0;
+  //char cmd[150]="\0", cmdResult[140]="\0";
 
-  printf ("\nOptions ? \n");
-  printf ("    1 - display current high voltage data (does not read or change interval) \n");
-  printf ("    2 - force a read of current high voltage data \n");
-  printf ("    3 - force a read of temps only");
-  printf (" \n");
-  printf ("    4 - End log file \n");
-  //  printf ("    5 - End DAQ logging \n");
-  printf (" \n");
-  printf ("    0 - end this program only \n");
-  printf (" \n");
-  printf ("  100 - end all hvmon programs \n");
+  printf (" Getting MPOD data ....");  
+  for (ii=0; ii<hvptr->maxchan; ii++){
 
-return;
+    if (hvptr->xx[ii].type == 0) {
+      hvptr->xx[ii].onoff = nf;      
+      setOnOff(ii);    //mpodGETguru(cmd, cmdResult);     // read the set voltage
+    }
+  }
+  printf (".... finished \n");  
+  return;
+}
+/******************************************************************************/
+int readOnOff(char *cmdResult) {
+  char *jj, *gg;             //pointer 
+  char ss[140];
+  int nn;
+
+  jj = strstr(cmdResult,"("); 
+  gg = strstr(cmdResult,")"); 
+  strcpy(ss,(jj+1));
+
+  ss[gg-jj-1]='\0';     // 0, 1 on/off; 10 = clear flags
+
+  nn=atoi(ss);
+  //printf("%s :: %s ",jj ,gg);
+  return (nn);
+}
+/******************************************************************************/
+void snmp(int setget, int ii, char *cmd, char *cmdResult) {
+  //  pid_t wait(int *stat_loc);
+  FILE *fp;
+  int status;
+  char com[150];
+  char res[200];
+  res[0] = '\0';
+
+/*
+   setget flag chooses if this is a 
+    0=read (snmpget) or
+    1=write (snmpset) or 
+    2-shutdown with MPOD MIB and IP from HV control
+    
+    snmpset -OqvU -v 2c -M /usr/share/snmp/mibs -m +WIENER-CRATE-MIB -c guru 192.168.13.231 outputSwitch.u7 i 0
+*/
+  if (setget == 1) {
+     //printf("ok.");
+    //    sprintf (com,"snmpset -v 2c -L o -m %s -c guru %s ",MPOD_MIB,MPOD_IP);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
+    //sprintf (com,"snmpset -v 2c -L o -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
+    sprintf (com,"snmpset -v 2c -M /usr/share/snmp/mibs -m +%s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);  //guru (MPOD)-private-public (iBOOTBAR); versions 1 (iBOOTBAR) and 2c (MPOD)
+  } 
+  else if (setget == 0){
+  //  printf("0ok");
+    sprintf (com,"snmpget -Ov -v 2c -M /usr/share/snmp/mibs -m %s -c guru %s ",MPOD_MIB,hvptr->xx[ii].ip);
+    //sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,hvptr->xx[ii].ip);
+    //    sprintf (com,"snmpget -v 2c -L o -m %s -c guru  %s ",MPOD_MIB,MPOD_IP);
+  }
+  else if (setget == 2){              // if setget =2 then issue HV shutdown
+    sprintf (com,"snmpset -OqvU -v 2c -M /usr/share/snmp/mibs -m %s -c guru %s i 0",MPOD_MIB,hvptr->xx[ii].ip);
+  }
+  strcat(com,cmd);                             // add command to snmp system call
+  //printf("%s\n",com);
+
+  fp = popen(com, "r");   // open child process - call to system; choosing this way
+
+  if (fp == NULL){                             // so that we get the immediate results
+    printf("<br/>Could not open to shell!\n");
+    strncat(cmdResult,"popen error",39);
+    return;
+  }
+
+  // process the results from the child process    
+    while (fgets(res,200,fp) != NULL){
+      fflush(fp);  
+    } 
+
+  // close the child process    
+  status = pclose(fp); 
+
+  if (status == -1) {
+    printf("<p>Could not issue snmp command to shell or to close shell!</p>\n");
+    strncat(cmdResult,"pclose error",139);
+    return;
+  } 
+  else {
+    //     wait();
+     strncpy(cmdResult,res,139);   // cutoff results so no array overflows
+  }
+
+  return;
 }
 
 /***********************************************************/
@@ -258,11 +359,30 @@ void printOut() {
   printf ("Time since start: %li s\n", hvptr->secRunning);
   printf ("-----------------------------------------------------------------------------------------------------------\n");
   //       12345678901234  123456  123456  123456  123456  123456
-  printf ("     Name        vSet    vMeas   iSet    iMeas  On/Off   uRamp  dRamp  SVMax  V1Set  I1Set   Trp  ITrp eTrp \n");
+  /*printf ("     Name        vSet    vMeas   iSet    iMeas  On/Off   uRamp  dRamp  SVMax  V1Set  I1Set   Trp  ITrp eTrp \n");
   printf ("                  (V)     (V)    (uA)     (uA)  (bool)   (V/s)  (V/s)   (V)    (V)    (uA)   (s)            \n");
   printf ("--------------  ------  ------  ------  ------  ------  ------ ------ ------ ------ ------  ----  ---- ---- \n");
-
-  for (ii=0; ii<hvptr->maxchan; ii++){
+*/
+  printf (" Type      IP address       Slot Chan      Name      vSet    iSet   uRamp   dRamp   Switch On/Off \n");
+  printf ("                                                     (V)      (uA)  (V/s)   (V/s)       1/0       \n");
+  printf ("------  --------------     ---- ---- -------------- ------  ------  ------  ------  ------------- \n");
+    for (ii=0; ii<hvptr->maxchan; ii++){
+    if (hvptr->xx[ii].type == 0) {
+      printf ("%3i %20s  %3i  %3i ",hvptr->xx[ii].type,hvptr->xx[ii].ip,hvptr->xx[ii].slot,hvptr->xx[ii].chan);
+      printf ("%14s  %6.1lf %6.0lf ",hvptr->xx[ii].name,hvptr->xx[ii].vSet,hvptr->xx[ii].iSet*1e6);
+      printf ("%6.1lf  %6.1lf   %i \n",hvptr->xx[ii].vRamp,hvptr->xx[ii].downRamp, hvptr->xx[ii].onoff);
+    }
+    if (hvptr->xx[ii].onoff == 1 && hvptr->xx[ii].type == 1) {
+      printf ("%20s %3i  %3i  %3i ",hvptr->xx[ii].ip,hvptr->xx[ii].type,hvptr->xx[ii].slot,hvptr->xx[ii].chan);
+      printf ("%14s  %6.1lf  %6.1lf  ",hvptr->xx[ii].name,hvptr->xx[ii].vSet,hvptr->xx[ii].iSet);
+      printf ("%6.1lf %6.1lf  ",hvptr->xx[ii].vRamp, hvptr->xx[ii].downRamp);
+      printf ("%6.1lf %6.1lf %6.1lf  ",hvptr->xx[ii].vMax, hvptr->xx[ii].v1Set,hvptr->xx[ii].i1Set);
+      printf ("%4.1lf %3i  %3i ",hvptr->xx[ii].trip, hvptr->xx[ii].intTrip,hvptr->xx[ii].extTrip);
+      printf("\n");
+    }
+  }
+  printf ("--------------------------------------------------------------------------------------------------\n");
+/*for (ii=0; ii<hvptr->maxchan; ii++){
     if (hvptr->xx[ii].type == 0) {
       printf ("%14s  %6.1lf  %6.1lf %6.6lf %6.6lf %3i ",
 	      hvptr->xx[ii].name,hvptr->xx[ii].vSet,hvptr->xx[ii].vMeas,hvptr->xx[ii].iSet,hvptr->xx[ii].iMeas,hvptr->xx[ii].onoff);
@@ -280,7 +400,7 @@ void printOut() {
     }
   }
   printf ("-----------------------------------------------------------------------------------------------------------\n");
-  
+  */
   return;
 }
 
@@ -297,15 +417,15 @@ void fprintOut() {
   x.ct = degptr->tim.time1;
 */
 //  curtime = time(NULL);
-  fprintf (fileSave,"    IP address       Type Slot Chan      Name       vSet    iSet   uRamp   dRamp  SVMax  V1Set  I1Set   Trp  ITrp eTrp \n");
-  fprintf (fileSave,"                                                     (V)   (uA-A)  (V/s)   (V/s)   (V)    (V)   (uA-A)  (s)            \n");
-  fprintf (fileSave,"-------------------- ---- ---- ---- -------------- ------  ------  ------ ------  ------ ------ ------  ---- ---- ---- \n");
+  fprintf (fileSave," Type      IP address       Slot Chan      Name      vSet    iSet   uRamp   dRamp   Switch On/Off \n");
+  fprintf (fileSave,"                                                     (V)      (uA)  (V/s)   (V/s)       1/0       \n");
+  fprintf (fileSave,"------  --------------     ---- ---- -------------- ------  ------  ------  ------  ------------- \n");
   for (ii=0; ii<hvptr->maxchan; ii++){
     if (hvptr->xx[ii].type == 0) {
-      fprintf (fileSave,"%20s %3i  %3i  %3i ",hvptr->xx[ii].ip,hvptr->xx[ii].type,hvptr->xx[ii].slot,hvptr->xx[ii].chan);
-      fprintf (fileSave,"%14s  %6.1lf %6.6lf ",hvptr->xx[ii].name,hvptr->xx[ii].vSet,hvptr->xx[ii].iSet);
+      fprintf (fileSave,"%3i %20s  %3i  %3i ",hvptr->xx[ii].type,hvptr->xx[ii].ip,hvptr->xx[ii].slot,hvptr->xx[ii].chan);
+      fprintf (fileSave,"%14s  %6.1lf %6.0lf ",hvptr->xx[ii].name,hvptr->xx[ii].vSet,hvptr->xx[ii].iSet*1e6);
       //      fprintf (fileSave,"%6.1lf %6.1lf  ",hvptr->xx[ii].vRamp, hvptr->xx[ii].downRamp);
-      fprintf (fileSave,"%6.1lf  ",hvptr->xx[ii].vRamp);
+      fprintf (fileSave,"%6.1lf  %6.1lf   %i ",hvptr->xx[ii].vRamp,hvptr->xx[ii].downRamp, hvptr->xx[ii].onoff);
       //      fprintf (fileSave,"%6.1lf %6.1lf %6.1lf  ",hvptr->xx[ii].vMax, hvptr->xx[ii].v1Set,hvptr->xx[ii].i1Set);
       //      fprintf (fileSave,"%4.1lf %3i  %3i \n",hvptr->xx[ii].trip, hvptr->xx[ii].intTrip,hvptr->xx[ii].extTrip);
       fprintf(fileSave,"\n");
@@ -319,7 +439,7 @@ void fprintOut() {
       fprintf(fileSave,"\n");
     }
   }
-  fprintf (fileSave,"-1  -1              (V)     (V)    (uA)     (uA)  (bool)   (V/s)  (V/s)   (V)    (V)    (uA)   (s)            \n");
+  fprintf (fileSave,"-1\n");
   fprintf (fileSave,"-----------------------------------------------------------------------------------------------------------\n");
   
   return;
@@ -329,77 +449,46 @@ void fprintOut() {
 void printActive() {
   int ii=0, tt=0;
 
-  tt = hvptr->maxchan/5;
-  for (ii=0; ii<tt; ii++){
-    printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    printf("%4i - %10s  ",ii+tt,hvptr->xx[ii+tt].name);
-    printf("%4i - %10s  ",ii+(2*tt),hvptr->xx[ii+(2*tt)].name);
-    printf("%4i - %10s  ",ii+(3*tt),hvptr->xx[ii+(3*tt)].name);
-    printf("%4i - %10s\n",ii+(4*tt),hvptr->xx[ii+(4*tt)].name);
-  }
-/*      
-    if (hvptr->xx[ii].onoff)        printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    else printf("     -             ");
-    if (hvptr->xx[ii+tt].onoff)     printf("%4i - %10s  ",ii+tt,hvptr->xx[ii+tt].name);
-    else printf("     -             ");
-    if (hvptr->xx[ii+(2*tt)].onoff) printf("%4i - %10s  ",ii+(2*tt),hvptr->xx[ii+(2*tt)].name);
-    else printf("     -             ");
-    if (hvptr->xx[ii+(3*tt)].onoff) printf("%4i - %10s  ",ii+(3*tt),hvptr->xx[ii+(3*tt)].name);
-    else printf("     -             ");
-    if (hvptr->xx[ii+(4*tt)].onoff) printf("%4i - %10s\n",ii+(4*tt),hvptr->xx[ii+(4*tt)].name);
-    else printf("     -             \n");
-  }
-*/
-  for (ii=5*tt; ii<hvptr->maxchan; ii++){
-    printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    //    if (hvptr->xx[ii].onoff) printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    //    else printf("     -             ");
-  }
+  for (ii=0; ii < hvptr->maxchan; ii++){
+    if (hvptr->xx[ii].onoff == 1) 
+    {
+      printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
+      tt++;
+      if (tt%4 == 0) printf("\n");
+    }
+ }
   printf("\n");
   return;
 }
 
 /**************************************************************/
-void printDeactive() {
+void printInactive() {
   int ii=0, tt=0;
 
-  printf("Available channels...\n");
-  for (tt=0; tt<16; tt++) {
-    if ((int) hvptr->caenCrate[tt] >= 0) {
-      printf("Slot %2i occupied ... available channels ",tt);
-      for (ii=0;ii<24;ii++) {
-	if (((hvptr->caenCrate[tt] & (int) pow(2,ii)) >> ii)== 0) printf(" %2i",ii);
-      }
-    printf ("\n");
+  for (ii=0; ii < hvptr->maxchan; ii++){
+    if (hvptr->xx[ii].onoff == 0) 
+    {
+      printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
+      tt++;
+      if (tt%4 == 0) printf("\n");
     }
-  }
-  /*
-  tt = hvptr->maxchan/5;
-
-  for (ii=0; ii<tt; ii++){ 
-    if (!hvptr->xx[ii].onoff)        printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    else printf("     -             ");
-    if (!hvptr->xx[ii+tt].onoff)     printf("%4i - %10s  ",ii+tt,hvptr->xx[ii+tt].name);
-    else printf("     -             ");
-    if (!hvptr->xx[ii+(2*tt)].onoff) printf("%4i - %10s  ",ii+(2*tt),hvptr->xx[ii+(2*tt)].name);
-    else printf("     -             ");
-    if (!hvptr->xx[ii+(3*tt)].onoff) printf("%4i - %10s  ",ii+(3*tt),hvptr->xx[ii+(3*tt)].name);
-    else printf("     -             ");
-    if (!hvptr->xx[ii+(4*tt)].onoff) printf("%4i - %10s\n",ii+(4*tt),hvptr->xx[ii+(4*tt)].name);
-    else printf("     -             \n");
-  }
-  for (ii=5*tt; ii<hvptr->maxchan; ii++){ 
-    if (!hvptr->xx[ii].onoff) printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
-    else printf("     -             ");
+ }
+  printf("\n");
+  return;
+}/**************************************************************/
+void printAvailable() {
+  int ii=0, tt=0;
+  for (ii=0; ii < hvptr->maxchan; ii++){
+      printf("%4i - %10s  ",ii,hvptr->xx[ii].name);
+      tt++;
+      if (tt%4 == 0) printf("\n");
   }
   printf("\n");
-  */
   return;
 }
-
 /******************************************************************/
 void menu1(){
-  int ii=0;
+  int ii=0, temp=0;
 
   // ii = 0;
   printf ("---------------------------------------------------------------------------------------\n");
@@ -417,8 +506,14 @@ void menu1(){
   printf ("---------------------------------------------------------------------------------------\n");
   printf ("18 - reset alarms?   | Time up - %li s            \n",hvptr->secRunning);
   printf ("---------------------------------------------------------------------------------------\n");
-  printf ("T100emps K: ");
-  for (ii=0;ii<16;ii++) if (hvptr->caenSlot[ii] > 0) printf ("%2.f  ",hvptr->caenTemp[ii]);
+  printf ("Temps (0,1,2) =(C,K,F): ");
+  //for (ii=0;ii<16;ii++) if (hvptr->caenSlot[ii] > 0) printf ("%2.f  ",hvptr->caenTemp[ii]);
+  for (ii=0;ii<hvptr->maxtchan; ii++) 
+    if (hvptr->mpodTemp[ii] > 0)
+    {
+      temp = hvptr->mpodTemp[ii];
+      printf ("T: %i CKF: %i ", temp , hvptr->mpodUnit[ii]);
+    }
   printf("\n");
   printf ("---------------------------------------------------------------------------------------\n");
   printf ("0 - end this program | 100 - end all HVmon     | \n");
@@ -477,11 +572,11 @@ char *GetDate() {
 void clone(){
   int ii=0, jj=0, kk=0, mm=0;
 
-  printActive();
+  printAvailable();
   printf("Clone from detector number ? e.g. 89 ( < 0 to quit)\n");
   ii = scan2int ();
   if (ii < 0) return;
-  printDeactive();
+  printInactive();
   printf("to slot ? e.g. 2 ( < 0 to quit) \n");
   jj = scan2int ();
   if (jj < 0) return;
@@ -495,17 +590,17 @@ void clone(){
   if (mm == 1) {
     printf("Changing slot and channel assignment to detector %i \n",ii);
     //    hvOff(ii);
-    hvptr->caenCrate[hvptr->xx[ii].slot] -= pow(2,hvptr->xx[ii].chan);  // remove old occupied channel bit
+    //hvptr->caenCrate[hvptr->xx[ii].slot] -= pow(2,hvptr->xx[ii].chan);  // remove old occupied channel bit
     hvptr->xx[ii].slot = jj;                                            // set new slot
     hvptr->xx[ii].chan = kk;                                            // set new channel
-    hvptr->caenCrate[jj] += pow(2,kk);                                  // add new occupied channel bit
+    //hvptr->caenCrate[jj] += pow(2,kk);                                  // add new occupied channel bit
     printf("Go to channel mode to turn on HV \n");                      // maxchan does not change
     }
   else if (mm == 0) {
     hvptr->xx[hvptr->maxchan] = hvptr->xx[ii];                          // transfer the data
     hvptr->xx[hvptr->maxchan].slot = jj;                                // correct to new slot
     hvptr->xx[hvptr->maxchan].chan = kk;                                // correct new channel
-    hvptr->caenCrate[jj] += pow(2,kk);                                  // add new occupied channel bit
+    //hvptr->caenCrate[jj] += pow(2,kk);                                  // add new occupied channel bit
     hvptr->maxchan++;                                                   // increment maxchan
     printf("Go to channel mode to turn on HV and change appropriate values such as detector name \n");
   }
