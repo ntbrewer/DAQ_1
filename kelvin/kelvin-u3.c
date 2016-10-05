@@ -140,7 +140,8 @@ int main(int argc, char **argv){
       degptr->com1 = 2;   // set comand back to regular reading
       break;
 
-    case  2:                   // do a regular or forced read...curtime is reset
+    case  2: 
+      printf("caught sig 2.");                  // do a regular or forced read...curtime is reset
       curtime = time(NULL);
       degptr->tim.time1 = curtime;        // load current times into shared/mapped memory
       init=0;
@@ -601,7 +602,7 @@ void readConf() {
   printf ("ADCs are all initialized  \n"); 
 
   for (kk=0; kk<degptr->maxchan; kk++){                       // initialize each ADC - needed for U3 labjacks
-    printf ("%i temp C = %.1lf \n", kk, degptr->temps[kk].degree);
+    printf ("%i temp %hi = %.1lf \n", kk, degptr->temps[kk].unit,degptr->temps[kk].degree);
   }
 
   return;
@@ -647,7 +648,7 @@ long eAIN(HANDLE Handle,
     return 0;
   }
 /*   
-     temperature probe EI-1034,1022 and U3-HV 
+     temperature probe EI-1034,1022, Pt-100 and U3-HV 
 */
   if (degptr->temps[ii].model == 1034) {
       degF = involts*100.0;
@@ -659,7 +660,17 @@ long eAIN(HANDLE Handle,
       degC = degK - 273.15;
       degF = degC*1.8 + 32;
   }
-
+  if (degptr->temps[ii].model == 100){      
+      degC = (involts*2.5-1)/0.003911;
+      degK = degC + 273.15;
+      degF = degC*1.8 + 32;
+  }
+  if (degptr->temps[ii].model == 1000){      
+      degC = (involts)*1000;
+      degK = degC;
+      degF = degC;
+  }
+  
   deg = degC;
   if (degptr->temps[ii].unit == 1) deg = degK;
   if (degptr->temps[ii].unit == 2) deg = degF;

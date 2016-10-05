@@ -42,7 +42,7 @@ int main(int argc, char **argv){
       printout();
       break;
 
-    case 2:                      // display temps and limits
+    case 2:
       printout();
       degptr->com1 = 2;           // command (3) stored in SHM so kelvin can do something
       kill(degptr->pid,SIGALRM);  // send an alarm to let kelvin know it needs to do command (1)
