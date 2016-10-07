@@ -588,7 +588,7 @@ void getHVmpod() {
   int ii=0;
   //char cmd[150]="\0", cmdResult[140]="\0";
 
-  //printf (" Getting MPOD data ....");  
+  printf (" Getting MPOD data ....");  
   for (ii=0; ii<hvptr->maxchan; ii++){
     getHVmpodChan(ii);
   }
@@ -600,7 +600,7 @@ void getHVmpodChan(int ii) {
   int setget=0;
   char cmd[150]="\0", cmdResult[140]="\0";
 
-  printf (" Getting MPOD data ....");  
+  //printf (" Getting MPOD data ....");  
 
     if (hvptr->xx[ii].type == 0) {
       if (hvptr -> xx[ii].slot == 0)
@@ -657,9 +657,9 @@ void getHVmpodChan(int ii) {
           hvptr->xx[ii].onoff = readOnOff(cmdResult);
       }
     }
-  printf("current settings are: V=%f, Vm=%f, Vup=%f, Vdn=%f, I=%f, Im=%f, 1/0=%i",
-          hvptr->xx[ii].vSet, hvptr->xx[ii].vMeas,hvptr->xx[ii].vRamp, hvptr->xx[ii].downRamp, 
-          hvptr->xx[ii].iSet, hvptr->xx[ii].iMeas, hvptr->xx[ii].onoff);
+  //printf("current settings are: V=%f, Vm=%f, Vup=%f, Vdn=%f, I=%f, Im=%f, 1/0=%i",
+  //        hvptr->xx[ii].vSet, hvptr->xx[ii].vMeas,hvptr->xx[ii].vRamp, hvptr->xx[ii].downRamp, 
+  //        hvptr->xx[ii].iSet, hvptr->xx[ii].iMeas, hvptr->xx[ii].onoff);
   //printf (".... finished \n");  
   return;
 }

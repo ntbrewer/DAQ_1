@@ -24,6 +24,8 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult);
 int readOnOff(char *cmdResult);
 void setHVmpod(int nf);
 void setOnOff(int ii);
+void ResetChan(int ii);
+void ResetAllChan();
 //void hvOnAll();
 //void hvOffAll();
 void saveSetup();
@@ -101,7 +103,8 @@ int main(int argc, char **argv){
 
     case 5:                      // display temps and limits
       printf("HV off...\n");
-      hvptr->com0 = 5;
+      setHVmpod(0);
+      //hvptr->com0 = 5;
       break;
     case 6:                      // Save Config File
       printf("Saving file...\n");
@@ -154,7 +157,8 @@ int main(int argc, char **argv){
       break;
 
     case 18:
-      printf("N/A Alarm resets?.....\n");
+      printf("Reseting.....\n");
+      ResetAllChan();
       break;
 
       
@@ -181,6 +185,31 @@ int main(int argc, char **argv){
   close(mapHVmon);
 
   return 0;
+}
+/******************************************************************************/
+void ResetAllChan() {
+  int ii=0;
+  for (ii=0; ii<hvptr->maxchan; ii++){
+    if (hvptr->xx[ii].type == 0) {
+      ResetChan(ii);    //mpodGETguru(cmd, cmdResult);     // read the set voltage
+    }
+  }
+  printf (" finished.\n");
+  return;
+}
+/**************************************************************/
+void ResetChan(int ii) {
+  char cmd[140]="\0", cmdRes[140]="\0";
+  if ( hvptr->xx[ii].slot ==0 ) 
+  {
+    sprintf(cmd, "outputSwitch.u%i i %i", hvptr->xx[ii].chan,10);
+  } else 
+  {
+    sprintf(cmd, "outputSwitch.u%i0%i i %i", hvptr->xx[ii].slot, hvptr->xx[ii].chan,10);
+  }
+
+  snmp(1,ii,cmd,cmdRes);
+  return;
 }
 /**************************************************************/
 void setOnOff(int ii) {
@@ -497,16 +526,16 @@ void menu1(){
   printf ("1 - Status           | 11 - Clone channel       |  \n");
   printf ("2 - Force read       | 12 -                     |  \n");
   printf ("3 - Force read Temps | 13 -                     |  \n");
-  printf ("4 - HV on            | 14 -                     |  \n");
-  printf ("5 - HV off           | 15 -                     |  \n");
+  printf ("4 - All HV on        | 14 -                     |  \n");
+  printf ("5 - All HV off       | 15 -                     |  \n");
   printf ("6 - Save conf file   | 16 - Alter parameters    |  \n");
   printf ("7 - Recover hardware | 17 - Read from file      |  \n");
-  printf ("8 - On list          | 18 -                     |  \n");
+  printf ("8 - On list          | 18 - Reset All Alarms    |  \n");
   printf ("9 - Off list         | 19 -                     |  \n");
   printf ("---------------------------------------------------------------------------------------\n");
-  printf ("18 - reset alarms?   | Time up - %li s            \n",hvptr->secRunning);
+  printf (" Time up - %li s            \n",hvptr->secRunning);
   printf ("---------------------------------------------------------------------------------------\n");
-  printf ("Temps (0,1,2) =(C,K,F): ");
+  printf (" Temps (0,1,2) =(C,K,F): ");
   //for (ii=0;ii<16;ii++) if (hvptr->caenSlot[ii] > 0) printf ("%2.f  ",hvptr->caenTemp[ii]);
   for (ii=0;ii<hvptr->maxtchan; ii++) 
     if (hvptr->mpodTemp[ii] > 0)
@@ -631,9 +660,9 @@ void detParam() {
   printf ("-----------------------------------------------------------------------------------------------------------\n");
 
   printf ("Type number of quantity to change:  0 = nothing   \n");
-  printf ("  1 - Voltage setting  |  5 - Voltage 1 setting   |  9 - Trip          \n");
-  printf ("  2 - Current setting  |  6 - Current 1 setting   | 10 - Trip internal \n");
-  printf ("  3 - HV on/off        |  7 - SV Maximum setting  | 11 - Trip external \n");
+  printf ("  1 - Voltage setting  |  5 - Reset Alarm         |  9 - Trip          \n");
+  printf ("  2 - Current limit    |  6 - N/A                 | 10 - Trip internal \n");
+  printf ("  3 - HV on/off        |  7 - HV Maximum setting  | 11 - Trip external \n");
   printf ("  4 - Voltage ramp up  |  8 - Voltage ramp down   |                    \n");
 
   jj = scan2int ();
@@ -657,12 +686,22 @@ void detParam() {
     if (hvptr->xx[ii].onoff == 1) {
       printf ("Turn HV off ? 1 = yes \n");
       kk = scan2int();
-      if (kk == 1) hvptr->com3 = 0;
+      if (kk == 1) 
+      { 
+        hvptr->com3 = 0;
+        hvptr->xx[ii].onoff = 0;
+        setOnOff(ii);
+      }
     }
     else if (hvptr->xx[ii].onoff == 0) {
       printf ("Turn HV on ? 1 = yes \n");
       kk = scan2int();
-      if (kk == 1)  hvptr->com3 = 1;
+      if (kk == 1)      
+      { 
+        hvptr->com3 = 1;
+        hvptr->xx[ii].onoff = 1;
+        setOnOff(ii);
+      }
     }
     break;
   case 4:
@@ -672,16 +711,10 @@ void detParam() {
     else hvptr->xcom3 = hvptr->xx[ii].vRamp;
     break;
   case 5:
-    printf ("What Voltage 1 setting? < %6.1lf V \n",hvptr->xx[ii].vMax);
-    yy = scan2float();
-    if (yy <= hvptr->xx[ii].vMax) hvptr->xcom3 = yy;
-    else hvptr->xcom3 = hvptr->xx[ii].v1Set;
+    ResetChan(ii);
     break;
   case 6:
-    printf ("What current 1 limit setting?  (uA) \n");
-    yy = scan2float();
-    if (yy <= hvptr->xx[ii].i1Set) hvptr->xcom3 = yy;
-    else hvptr->xcom3 = hvptr->xx[ii].i1Set;
+    printf ("Not used. \n");
     break;
   case 7:
     printf ("What maximum voltage setting? < 3550 V \n");
