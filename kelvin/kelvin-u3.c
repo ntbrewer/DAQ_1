@@ -660,11 +660,16 @@ long eAIN(HANDLE Handle,
       degC = degK - 273.15;
       degF = degC*1.8 + 32;
   }
-  if (degptr->temps[ii].model == 100){      
+  /*if (degptr->temps[ii].model == 100){      
       degC = (involts*2.5-1)/0.003911;
       degK = degC + 273.15;
       degF = degC*1.8 + 32;
-  }
+  }*/
+  if (degptr->temps[ii].model == 100){      
+      degC = (involts-0.4267)/0.001544;
+      degK = degC + 273.15;
+      degF = degC*1.8 + 32;
+  } 
   if (degptr->temps[ii].model == 1000){      
       degC = (involts)*1000;
       degK = degC;
