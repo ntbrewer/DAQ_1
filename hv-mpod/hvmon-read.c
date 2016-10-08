@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 /*
 
 */
-//  int ii=0, tt=0;
+  int ii=0;//, tt=0;
   int ans=0;
   int mapHVmon;
   //  pid_t pid;
@@ -78,14 +78,12 @@ int main(int argc, char **argv){
       printOut();
       hvptr->com0 = 2;           // command (3) stored in SHM so  hvmon can do something
       printOut();
-  
       break;
 
     case 3:                      // display temps and limits
       printOut();
       hvptr->com0 = 3;            // command (3) stored in SHM so hvmon can do something
       printOut();
-  
       break;
 
     case 4:                      // display temps and limits
@@ -111,7 +109,7 @@ int main(int argc, char **argv){
       openSaveFile();
       fprintOut();
       fclose(fileSave);
-      printf("file should be saved ...\n");
+      printf("file is saved ...\n");
       break;
 
     case 7:
@@ -137,11 +135,19 @@ int main(int argc, char **argv){
       break;
      
     case 14:                      // display temps and limits
-      printf("N/A Channel HV on...\n");
+      printf("Channel HV on...\n");
+      printInactive();
+      ii = scan2int("which channel to turn on?");
+      hvptr->xx[ii].onoff = 1;
+      setOnOff(ii);
       break;
 
     case 15:                      // display temps and limits
-      printf("N/A Channel HV off...\n");
+      printf("Channel HV off...\n");
+      printActive();
+      ii = scan2int("which channel to turn off?");
+      hvptr->xx[ii].onoff = 1;
+      setOnOff(ii);
       break;
 
     case 16:                      // display temps and limits
@@ -526,8 +532,8 @@ void menu1(){
   printf ("1 - Status           | 11 - Clone channel       |  \n");
   printf ("2 - Force read       | 12 -                     |  \n");
   printf ("3 - Force read Temps | 13 -                     |  \n");
-  printf ("4 - All HV on        | 14 -                     |  \n");
-  printf ("5 - All HV off       | 15 -                     |  \n");
+  printf ("4 - All HV on        | 14 - Channel On          |  \n");
+  printf ("5 - All HV off       | 15 - Channel Off         |  \n");
   printf ("6 - Save conf file   | 16 - Alter parameters    |  \n");
   printf ("7 - Recover hardware | 17 - Read from file      |  \n");
   printf ("8 - On list          | 18 - Reset All Alarms    |  \n");
@@ -688,7 +694,7 @@ void detParam() {
       kk = scan2int();
       if (kk == 1) 
       { 
-        hvptr->com3 = 0;
+        //hvptr->com3 = 0;
         hvptr->xx[ii].onoff = 0;
         setOnOff(ii);
       }
@@ -698,7 +704,7 @@ void detParam() {
       kk = scan2int();
       if (kk == 1)      
       { 
-        hvptr->com3 = 1;
+        //hvptr->com3 = 1;
         hvptr->xx[ii].onoff = 1;
         setOnOff(ii);
       }
