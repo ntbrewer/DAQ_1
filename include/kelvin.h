@@ -40,6 +40,7 @@ struct therm {
   short int onoff;         // 1 = on, 0 = off 
   short int unit;          // 0 = celcius; 1 = kelvin, 2=Fahrenheit
   unsigned short para;     // parameter for DAQ
+  short int limit;         // temperature limits used for logic/action elsewhere with the same units as unit. def -500
   unsigned short data;     // data for daq (so integer only * 10...ie 20 C will be 200 in data (tenth degree)
   double degree;           // data read from LabJack
 };
