@@ -44,6 +44,9 @@ void setRampUp(int ii);
 void setRampDown(int ii);
 void setCurrent(int ii);
 void setOnOff(int ii);
+void setReset(int ii);
+void setResetAll();
+void setVMax(int ii);
 int openTherm();
 void closeTherm();
 void getTemp();
@@ -52,9 +55,9 @@ void changeParam();
 int scan2int();
 float scan2float();
 int getCmdIdx(int ii);
-void setV1(int ii);
+/*void setV1(int ii);
 void setI1(int ii);
-void setSV(int ii);
+void setSV(int ii);*/
 
 /*
 void getVMon(int ii);
@@ -91,7 +94,7 @@ int main(int argc, char **argv){
 /*
 
 */
-  //int ii=0, result=0;
+  //int ii=0;//, result=0;
   //  long int p0=0, p1=1, count=0, etime=0;
   int mapHVmon, mapTherm=-1;
   pid_t pid;
@@ -209,8 +212,34 @@ int main(int argc, char **argv){
       signalBlock(p0);
       hvptr->com0 = 2;   
       break;
+   /* case 14:
+      printf(" Changing parameters of one detector....\n");
+      printf("which channel to turn on?");
+      ii = scan2int();
+      hvptr->xx[ii].onoff = 1;
+      printf(" %i ,channel\n", ii);
+      signalBlock(p1);
+      setOnOff(ii);
+      signalBlock(p0);
+      hvptr->com0 = 2;    // set comand to regular reading. Test if necessary
+     break;
+    case 15:
+      printf(" Changing parameters of one detector....\n");
+      ii = hvptr->com1;
+      signalBlock(p1);
+      setOnOff(ii);
+      signalBlock(p0);
+      hvptr->com0 = 2;    // set comand to regular reading. Test if necessary
+     break;*/
     case 16:
       printf(" Changing parameters of one detector....\n");
+      signalBlock(p1);
+      changeParam();
+      signalBlock(p0);
+      hvptr->com0 = 2;    // set comand to regular reading. Test if necessary
+     break;
+    case 18:
+      printf(" Reseting All Status.... \n");
       signalBlock(p1);
       changeParam();
       signalBlock(p0);
@@ -252,7 +281,7 @@ void signalBlock(int pp){
     if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
       perror ("sigprocmask");
       return;
-    }  
+    }
   }
   else {    
        printf("release block signals ....\n");
@@ -391,10 +420,10 @@ void readConf() {
   FILE *ifile;
   char line[200]="\0";
   char hvmon_conf[200] ="\0";
-  int ii=0, mm=0, slot=0, chan=0, onoff=0;
+  int ii=0, mm=0, slot=0, chan=0, onoff=0, reset=0;
   int mapTherm =-1, tOK=0;
 //int itrip=0, etrip=0;
-  float volts=0.0, current=0.0, dramp=0.0, ramp=0.0;
+  float volts=0.0, current=0.0, dramp=0.0, ramp=0.0, vMax=2000.0;
 //float trip=0.0,  svmax=0.0, v1set=0.0, i1set=0.0;
   char ip[30]="\0", name[15]="\0";
 
@@ -462,7 +491,7 @@ void readConf() {
       hvptr->xx[indexMax].type = ii;
       hvptr->xx[indexMax].slot = slot;
       hvptr->xx[indexMax].chan = chan;
-      
+      hvptr->xx[indexMax].vMax = vMax;   //hardcode safety switch
       strcpy(hvptr->xx[indexMax].name,name);
       strcpy(hvptr->xx[indexMax].ip,ip);
 
@@ -486,6 +515,11 @@ void readConf() {
       {
         hvptr->xx[indexMax].iSet = current;
         setCurrent(indexMax);
+      }
+      if (hvptr->xx[indexMax].reset != reset)
+      {
+        setReset(indexMax);
+        hvptr->xx[indexMax].reset = 0;
       }
       /*if getTempChan(indexMax) > allowed
         sprintf(cmd, "outputSwitch.u%i i %i",chan, 0);
@@ -814,7 +848,7 @@ int checkTemp(){
   int isOk=0, ii, cnt=0;
   for (ii=0; ii < degptr->maxchan; ii++)
   {
-      if (degptr->temps[ii].degree < 120. || degptr->temps[ii].degree > 50.)
+      if (degptr->temps[ii].degree < degptr->temps[ii].limit || degptr->temps[ii].degree > -500.)
       {
       	cnt++;
       }
@@ -837,124 +871,17 @@ void changeParam(){
  control variables:
   com0 = 16        selects this function
   com1 = detector  selects detector to change
-  com2 = parameter selects the parameter to change.....
   hvptr->xx[hvptr->com1].parameter contains the new parameter
+  ORDER MATTERS!
    */
 
   ii = hvptr->com1;
-  switch (hvptr->com2){
-
-  case 1:
-    if (hvptr->xx[ii].vSet == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-      hvptr->xx[ii].vSet = hvptr->xcom3;
-      setVolts(ii);  
-    }
-    hvptr->com2=20;
-
-  case 2:
-    if (hvptr->xx[ii].vSet == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-     hvptr->xx[ii].iSet = hvptr->xcom3;
-     setCurrent(ii);
-    }
-    hvptr->com2=20;
-
-  case 3:
-    if (hvptr->xx[ii].onoff == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-     hvptr->xx[ii].onoff = hvptr->xcom3;
-     setOnOff(ii);
-    }
-    hvptr->com2=20;
-
-  case 4:
-    if (hvptr->xx[ii].vRamp == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-     hvptr->xx[ii].vRamp = hvptr->xcom3;
-     setRampUp(ii);
-    }
-    hvptr->com2=20;
-
-  case 5:
-    if (hvptr->xx[ii].v1Set == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-      hvptr->xx[ii].v1Set = hvptr->xcom3;
-      setV1(ii);    
-    }
-    hvptr->com2=20;
-
-  case 6:
-    if (hvptr->xx[ii].i1Set == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-      hvptr->xx[ii].i1Set = hvptr->xcom3;
-      setI1(ii); 
-    }
-    hvptr->com2=20;
-
-  case 7:
-    if (hvptr->xx[ii].vMax == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-      hvptr->xx[ii].vMax = hvptr->xcom3;
-      setSV(ii);
-    }
-    
-    hvptr->com2=20;
-
-  case 8:
-    if (hvptr->xx[ii].vRamp == hvptr->xcom3)
-    {  return; 
-    } else 
-    {
-     hvptr->xx[ii].downRamp = hvptr->xcom3;
-     setRampDown(ii);
-    }
-    hvptr->com2=20;
-
-  case 9:
-    //setTrip(ii);
-    hvptr->com2=20;
-
-  case 10:
-    //setTripInt(ii);
-    hvptr->com2=20;
-
-   case 11:
-    //setTripExt(ii);
-    hvptr->com2=20;
-  case 20:
-/*    if (ans == 1) 
-    {
-      break;
-    } else if (ans == 0) 
-    {
-      printf ("Which detector number to change ?\n");
-      ans = scan2int ();
-      hvptr->com2= ans;
-     } else 
-     {
-       printf("N/A");
-       break;
-     }
-  default:*/
-    break;
-  }
- 
-
+  setOnOff(ii);
+  setRampUp(ii);
+  setRampDown(ii);
+  setVolts(ii); 
+  setCurrent(ii);
+  setReset(ii);
   return;
 }
 //******************************************************************/
@@ -1018,6 +945,33 @@ void setOnOff(int ii) {
   return;
 }
 /**************************************************************/
+void setReset(int ii) {
+  int idx = getCmdIdx(ii);
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputSwitch.u%i i %i", idx, 10);
+  snmp(1,ii,cmd,cmdRes);
+  return;
+}
+/**************************************************************/
+void setResetAll( ) {
+  int ii=0;
+  for (ii=0; ii<hvptr->maxchan; ii++){
+    if (hvptr->xx[ii].type == 0) {
+      setReset(ii);    //mpodGETguru(cmd, cmdResult);     // read the set voltage
+    }
+  }
+  printf (" finished.\n");
+  return;
+}
+/**************************************************************/
+/*void setVMax(int ii) {
+  int idx = getCmdIdx(ii);
+  char cmd[140]="\0", cmdRes[140]="\0";
+  sprintf(cmd, "outputSupervisionMaxTerminalVoltage.u%i F %f", idx, hvptr->xx[ii].vMax);
+  snmp(1,ii,cmd,cmdRes);
+  return;
+}*/
+/**************************************************************/
 int getCmdIdx(int ii) {
 int cmdIdx=-1;
   if ( hvptr->xx[ii].slot != 0) 
@@ -1027,60 +981,7 @@ int cmdIdx=-1;
   {
     cmdIdx = hvptr->xx[ii].chan;
   }
+  //printf("%i cmdindx", cmdIdx);
   return cmdIdx;
 }
 /**************************************************************/
-
-void setV1(int ii){
-  //char V1Set[30]="V1Set\0";       //   I0Set
-  int one=1;
-  //int result=0;
-  float	         *floatVal  = NULL;
-
-  //  if (hvcptr->xx[ii].v1Set == hvcptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  //result = CAENHV_SetChParam(hvcptr->xx[ii].caenH, hvcptr->xx[ii].slot, V1Set, one, &hvcptr->xx[ii].chan, floatVal);
-  //if (result != 0) printf("Error setting V1Set for det %i from CAEN system %s handle %i\n",ii, hvcptr->xx[ii].ip,hvcptr->xx[ii].caenH);
-  //  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-/**************************************************************/
-
-void setI1(int ii){
-//  char I1Set[30]="I1Set\0";       //   I0Set
-  int one=1;
-//  int result=0;
-  float	         *floatVal  = NULL;
-
-  //  if (hvcptr->xx[ii].i1Set == hvcptr->xcom3) return;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-  floatVal[0] = hvptr->xcom3;
-  //result = CAENHV_SetChParam(hvcptr->xx[ii].caenH, hvcptr->xx[ii].slot, I1Set, one, &hvcptr->xx[ii].chan, floatVal);
-//  if (result != 0) printf("Error setting I1Set for det %i from CAEN system %s handle %i\n",ii, hvcptr->xx[ii].ip,hvcptr->xx[ii].caenH);
-  //  else printf("Success\n");            // set current
-  free (floatVal);
-
-  return;
-}
-/**************************************************************/
-void setSV(int ii){
-//  char SVMax[30]="SVMax\0";       //   V0Set  
-  int one=1;
-//  int result=0;
-  float	         *floatVal  = NULL;
-
-  floatVal =  malloc(one * sizeof(float));               // if multiple channels use numChan instead of one
-
-  //result = CAENHV_GetChParam(hvcptr->xx[ii].caenH, hvcptr->xx[ii].slot, SVMax, one, &hvcptr->xx[ii].chan, floatVal);
-  //if (result != 0) printf("Error getting SVMax for det %i from CAEN system %s handle %i\n",ii, hvcptr->xx[ii].ip,hvcptr->xx[ii].caenH);
-  //else hvcptr->xx[ii].vMax = floatVal[0];   // (float)val;           // set voltage
-
-  free (floatVal);
-
-  return;
-}

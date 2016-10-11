@@ -31,7 +31,8 @@ struct hvchan {
   int tOK;
   unsigned short int chan;
   unsigned short int slot;
-  unsigned short int onoff;
+  int onoff;
+  unsigned short int reset;
   float iMeas;   // uA
   float vMeas;   // Volts
   float vSet;    // Volts

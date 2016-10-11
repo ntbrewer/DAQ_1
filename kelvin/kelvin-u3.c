@@ -141,7 +141,7 @@ int main(int argc, char **argv){
       break;
 
     case  2: 
-      printf("caught sig 2.");                  // do a regular or forced read...curtime is reset
+      //printf("caught sig 2.");                  // do a regular or forced read...curtime is reset
       curtime = time(NULL);
       degptr->tim.time1 = curtime;        // load current times into shared/mapped memory
       init=0;
@@ -458,7 +458,7 @@ void readConf() {
 
   int lj = 0;
   int jj=0, mm=0;
-  int ii=0, onoff=0, chan=0, unit=0, para=0, model=0, range=0, ljnum=0, init=1; 
+  int ii=0, onoff=0, chan=0, unit=0, para=0, model=0, range=0, ljnum=0, init=1, limit=100; 
   char name[10]="\0";
   int num=0, kk=0, kflag=0;
 
@@ -494,19 +494,19 @@ void readConf() {
     }
 /*
    A line from the file is read above and processed below
- Num   Name   Model    OnOff   LabJack   AinX     CKF    Daq Parameter  30 = U3-LV, 31 = U3-HV, 32 = U3 extended range
----   ----   -----    -----   -------   -----   -----   -------------   0 = Celcius, 1 = Kelvin, 2 = Fahrenheit 
- 1     A1    1022       1       30        0       0          21
- 2     B2    1022       1       30        1       0          22
+ Num   Name   Model    OnOff   LabJack   AinX     CKF    Daq Parameter   Limit       30 = U3-LV, 31 = U3-HV, 32 = U3 extended range
+---   ----   -----    -----   -------   -----   -----   -------------   -------      0 = Celcius, 1 = Kelvin, 2 = Fahrenheit 
+ 1     A1    1022       1       30        0       0          21           999
+ 2     B2    1022       1       30        1       0          22           999
    
 */
-    mm = sscanf (line,"%i %s %i %i %i %i %i %i %i", &ii, name, &model, &onoff, &lj, &range, &chan, &unit, &para);
+    mm = sscanf (line,"%i %s %i %i %i %i %i %i %i %i", &ii, name, &model, &onoff, &lj, &range, &chan, &unit, &para , &limit);
     printf ("Read in %i values\n",mm);
-    printf ("in values: %i %s %i %i %i %i %i %i %i \n", ii, name, model, onoff, lj, range, chan, unit, para);
+    printf ("in values: %i %s %i %i %i %i %i %i %i \n", ii, name, model, onoff, lj, range, chan, unit, para, limit);
 /*
    Now load the data into the shared memory structure
 */
-    if (ii == 999){
+    if (ii == -1){
       printf ("Detected end of conf file after processing %i labjacks and %i channels \n",ljmax,num); 
       printf ("Now read least and most signficant byte pairs for current time \n"); 
       fgets(line,150,ifile);
@@ -533,6 +533,7 @@ void readConf() {
     degptr->temps[jj].chan = chan;
     degptr->temps[jj].unit = unit;
     degptr->temps[jj].para = para;
+    degptr->temps[jj].limit = limit;
     /*
     strcpy(degptr->temps[jj].name,name);
     degptr->temps[jj].onoff = onoff;
