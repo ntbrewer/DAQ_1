@@ -35,7 +35,7 @@ struct sigaction act;
 char         path [PATH_MAX+1];                  // PATH_MAX defined in a system libgen.h file
 char     mpod_mib [PATH_MAX+100]="\0";
 char ibootbar_mib [PATH_MAX+100]="\0";
-
+void sendEmail();
 void getHVmpod();
 void getHVmpodChan(int ii);
 void setHVmpod(int ii);
@@ -176,6 +176,7 @@ int main(int argc, char **argv){
       {
          setHVmpod(0);
          printf("Bad Temp: shutting Down!");
+         sendEmail();
       }
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
@@ -197,6 +198,7 @@ int main(int argc, char **argv){
       {
          setHVmpod(0);
          printf("Bad Temp: shutting Down!");
+         sendEmail();
       }
       hvptr->com0 = 0;    // test if necessary
       break;
@@ -414,7 +416,37 @@ int mmapSetup() {
    */
    return (fd);
 }
+/***********************************************************/
 
+void sendEmail() {   
+  //test declarations
+  FILE *fp;
+  int status;
+  char res[200];
+  res[0] = '\0';
+  fp = popen(" mutt -s \"Test from mutt\" brewer.nathant@gmail.com -c seaborgium263@gmail.com < LNmessage.txt  ", "r");   
+  // open child process - call to system; choosing this way
+
+  if (fp == NULL){                             // so that we get the immediate results
+    printf("<br/>Could not open to shell!\n");
+    //strncat(cmdResult,"popen error",39);
+    return;
+  }
+
+  // process the results from the child process    
+  while (fgets(res,200,fp) != NULL){
+    fflush(fp);  
+  } 
+
+  // close the child process    
+  status = pclose(fp); 
+
+  if (status == -1) {
+    printf("<p>Could not issue snmp command to shell or to close shell!</p>\n");
+    //strncat(cmdResult,"pclose error",139);
+  } 
+  return;
+}  
 /******************************************************************************/
 void readConf() {
   FILE *ifile;
