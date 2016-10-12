@@ -39,6 +39,7 @@ void sendEmail();
 void getHVmpod();
 void getHVmpodChan(int ii);
 void setHVmpod(int ii);
+void setGeHVmpod(int ii);
 void setVolts(int ii);
 void setRampUp(int ii);
 void setRampDown(int ii);
@@ -174,9 +175,11 @@ int main(int argc, char **argv){
       tOK = checkTemp();
       if (tOK != 1)
       {
-         setHVmpod(0);
+         setGeHVmpod(0);
          printf("Bad Temp: shutting Down!");
          sendEmail();
+         hvptr->com0 = -1;
+         break;
       }
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
@@ -196,9 +199,11 @@ int main(int argc, char **argv){
       tOK = checkTemp();
       if (tOK != 1)
       {
-         setHVmpod(0);
+         setGeHVmpod(0);
          printf("Bad Temp: shutting Down!");
          sendEmail();
+         hvptr->com0 = -1;
+         break;
       }
       hvptr->com0 = 0;    // test if necessary
       break;
@@ -746,6 +751,22 @@ void setHVmpod(int nf) {
   return;
 }
 /******************************************************************************/
+void setGeHVmpod(int nf) {
+  int ii=0;
+  //char cmd[150]="\0", cmdResult[140]="\0";
+
+  printf (" Getting MPOD data ....");  
+  for (ii=0; ii<indexMax; ii++){
+
+    if (hvptr->xx[ii].type == 0 && hvptr->xx[ii].slot == 3 ) { //HARD CODED FOR BRIKEN!!
+      hvptr->xx[ii].onoff = nf;      
+      setOnOff(ii);    //mpodGETguru(cmd, cmdResult);     // read the set voltage
+    }
+  }
+  printf (".... finished \n");  
+  return;
+}
+/******************************************************************************/
 void snmp(int setget, int ii, char *cmd, char *cmdResult) {
   //  pid_t wait(int *stat_loc);
   FILE *fp;
@@ -880,10 +901,11 @@ int checkTemp(){
   int isOk=0, ii, cnt=0;
   for (ii=0; ii < degptr->maxchan; ii++)
   {
-      if (degptr->temps[ii].degree < degptr->temps[ii].limit || degptr->temps[ii].degree > -500.)
+      if ( (degptr->temps[ii].degree < degptr->temps[ii].limit ) && degptr->temps[ii].degree > -500.)
       {
       	cnt++;
       }
+      //printf("%i ", cnt );
       hvptr-> mpodUnit[ii] = degptr->temps[ii].unit;
       hvptr-> mpodTemp[ii] = degptr->temps[ii].degree;
   }
@@ -892,6 +914,7 @@ int checkTemp(){
   {
      isOk=1;
   }
+  //printf("%i temp check\n",isOk);
   return(isOk);
 }
 
