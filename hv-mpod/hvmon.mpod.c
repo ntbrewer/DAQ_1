@@ -424,7 +424,7 @@ void sendEmail() {
   int status;
   char res[200];
   res[0] = '\0';
-  fp = popen(" mutt -s \"Test from mutt\" brewer.nathant@gmail.com -c seaborgium263@gmail.com < LNemail.txt  ", "r");   
+  fp = popen(" mutt -s \"MESSAGE FROM LN@BRIKEN!\" brewer.nathant@gmail.com -c seaborgium263@gmail.com < LNemail.txt  ", "r");   
   // open child process - call to system; choosing this way
 
   if (fp == NULL){                             // so that we get the immediate results
