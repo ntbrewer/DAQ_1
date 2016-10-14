@@ -189,10 +189,13 @@ int main(int argc, char **argv){
     closeUSBConnection(labj[kk].hand);
     printf("USB to LabJack %li closed\n",labj[kk].lj);
   }
+
   return 0;
 }
 
+
 /***********************************************************/
+
 void signalBlock(int pp){
 /*
     Block (p=1) and unblock (p=0) signal SIGALRM
