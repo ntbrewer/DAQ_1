@@ -1,9 +1,44 @@
 
 lnfill-u6:
-gcc —lm -llabjackusb u6.o -o lnfill-u6 lnfill-u6-v6.c
+gcc —lm -llabjackusb u6.o -o lnfill-u6 lnfill-u6.c
 
-lnfill-u6-read:
-gcc -o lnfill-u6-read lnfill-u6-read.c
+lnfill-read:
+gcc -o lnfill-read lnfill-read.c
+
+lnfill-log:                                              */
+    gcc -Wall -o lnfill-log lnfill-log.c 
+
+Makefile can be used for any of the possibilities:
+of using configurations:
+u3/mmap  
+u6/mmap
+u3/shm
+u6/shm
+
+u3 or u6 means the labjack model being used.
+mmap or shm means writing to DAQ_1/data or to a shared memory segment
+
+make or make all produces all files necessary to run with labels signifying the 6 cases for main program and reader. 
+these are named generally as programname-LabJackType-MemoryMode
+or using generallly
+make all-LabJackType-MemoryMode will produce 3 files:
+lnfill
+and 
+lnfill-log
+and
+lnfill-read
+
+example:
+make 
+compiles:
+lnfill-u3-mmap lnfill-u6-mmap lnfill-log-mmap lnfill-read-mmap lnfill-u3-shm lnfill-u6-shm lnfill-log-shm lnfill-read-shm
+
+make all-u3-mmap
+compiles:
+lnfill lnfill-log lnfill-read
+
+
+:::::::MAILING HELP:::::::
 
 Check if postfix is running:
 sudo postfix status
@@ -13,6 +48,7 @@ sudo postfix start
 
 (postfix is probably in /etc   and its config file is main.cf)
 
+For MAC:
 In order to send mail after upgrading to mountain lion I had to:
 
 sudo mkdir -p /Library/Server/Mail/Data/spool

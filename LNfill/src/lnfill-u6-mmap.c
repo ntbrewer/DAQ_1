@@ -1,9 +1,9 @@
 /*
-  Program lnfill-u3 to handle LN filling and monitoring of Ge
+  Program lnfill-u6 to handle LN filling and monitoring of Ge
   when RMS system is not available.
 
   To be compiled with:                                           
-     gcc -lm -llabjackusb u3.o -o lnfill-u3 lnfill-u3.c
+     gcc -lm -llabjackusb u6.o -o lnfill-u6 lnfill-u6.c
 
   Will put relevant data into shared memory where other programs
   can access it and decide actions such as turning off HV.
@@ -12,16 +12,16 @@
   power strip with remote relay control.
 */
 
-#include "../include/lnfill.h"
-#include "../include/u3.h"
-#include "../include/labjackusb.h"
-#include "../include/u3-err-msg.h"
+#include "../../include/lnfill-mmap.h"
+#include "../../include/u6.h"
+#include "../../include/labjackusb.h"
+#include "../../include/u3-err-msg.h"
 
-#define IBOOTBAR_MIB "../include/ibootbar_v1.50.258.mib"
-#define MPOD_MIB     "../include/WIENER-CRATE-MIB.txt"
-#define CONFIGFILE   "../include/lnfill.conf"
+#define IBOOTBAR_MIB "../../include/ibootbar_v1.50.258.mib"
+#define MPOD_MIB     "../../include/WIENER-CRATE-MIB.txt"
+#define CONFIGFILE   "../../conf/lnfill.conf"
 
-char lnfill_conf[200]="include/lnfill.conf";   //see define statement in lnfill.h 
+char lnfill_conf[200]="../../conf/lnfill.conf";   //see define statement in lnfill.h 
 
 // mtas1vme (name pf mtas1 on vme network) - 00.01.2E.3B.2E.9B mac address
 //#define IBOOTBAR_IP "192.168.0.254"      //  Default from iBootBar: mask 255.255.255.0 
@@ -34,19 +34,19 @@ char lnfill_conf[200]="include/lnfill.conf";   //see define statement in lnfill.
 #define INTERVAL 60
 
 void readConf();                  // processes configuration file
-void shmSetup();                  // sets up the shared memory
+//void shmSetup();                  // sets up the shared memory
 int mmapSetup();                 // sets up the memory map
-int labjackSetup();               // sets up the LabJack U3
+int labjackSetup();               // sets up the LabJack U6
 double readRTD(long int ii);      // reads RTDs for temperature
-void resetU3(uint8 res);          // resets the U3
+void resetU6(uint8 res);          // resets the U6
 
 void setTimer();                  // sets the timer for signals
 void alarm_wakeup();
 struct itimerval tout_val;        // needed the timer for signals
 void handlerCommand(int sig, siginfo_t *siginfo, void *context);  // main handler for signal notification and decisions
 void signalBlock(int pp);
-HANDLE hU3;                       // LabJack stuff
-u3CalibrationInfo caliInfo;       // LabJack stuff
+HANDLE hU6;                       // LabJack stuff
+u6CalibrationInfo caliInfo;       // LabJack stuff
 
 void updateRTD();                                    // read RTDs and store values into shared memory
 void snmp(int setget, char *cmd, char *cmdResult);   // snmp get/set commands
@@ -97,7 +97,7 @@ int main(int argc, char **argv){
   pid_t pid;
 
 /*
-  Set up LabJack U3  ***PUT NOTHING BEFORE THIS AND SHARED MEMORY
+  Set up LabJack U6  ***PUT NOTHING BEFORE THIS AND SHARED MEMORY
 */
 //  path = getcwd(path,PATH_MAX+1); 
   printf("Working directory: %s\n",getcwd(path,PATH_MAX+1));
@@ -110,7 +110,7 @@ int main(int argc, char **argv){
   printf("ibootbar_mib file: %s\n",ibootbar_mib);
   
 /*
-  Set up LabJack U3  ***PUT NOTHING BEFORE THIS AND SHARED MEMORY
+  Set up LabJack U6  ***PUT NOTHING BEFORE THIS AND SHARED MEMORY
 */
   labjackSetup();
 /*
@@ -316,8 +316,7 @@ int main(int argc, char **argv){
 
 
 /*
-   Release the shared memory and close the U3
-
+   Release the shared memory and close the U6
 */
   if (munmap(lnptr, sizeof (struct lnfill*)) == -1) {
     perror("Error un-mmapping the file");
@@ -332,7 +331,7 @@ int main(int argc, char **argv){
   shmctl(shmid, IPC_RMID, NULL);    // remove the shared memory segment hopefully forever
   printf("removed from SHM\n");
 */
-  closeUSBConnection(hU3);
+  closeUSBConnection(hU6);
   printf("USB closed\n");
 
 
@@ -740,14 +739,14 @@ double readRTD (long int adc) {
   double ohms=0.0, degRTD=273.15, amps=0.004167; //I=V/R=4.92/1080 = 4.555 mA ; 200 - 50 uA
   long int DAC1Enable=1;
 /*
-  Read the ADC from the U3
+  Read the ADC from the U6
 */
 
-//  error = eAIN(hU6, &caliInfo, adc, 0, &involts, LJ_rgBIP1V, 8, 0, 0, 0, 0);   // LJ_rgBIP1V data range
-  error = eAIN(hU3, &caliInfo, 0, &DAC1Enable, adc, 31, &involts, 0, 0, 0, 0, 0, 0);
+  error = eAIN(hU6, &caliInfo, adc, 0, &involts, LJ_rgBIP1V, 8, 0, 0, 0, 0);   // LJ_rgBIP1V data range   U6 command
+  //  error = eAIN(hU3, &caliInfo, 0, &DAC1Enable, adc, 31, &involts, 0, 0, 0, 0, 0, 0);   //U3 command
   if (error != 0){
     printf("%li - %s\n", error, errormsg[error]);
-    closeUSBConnection(hU3);
+    closeUSBConnection(hU6);
     return 0;
   }
 /*
@@ -773,18 +772,18 @@ int labjackSetup(){
   long int error=0;
 
 /*
-  Open first found U3 over USB
+  Open first found U6 over USB
 */
   printf("opening usb .... ");
 
   while (count < 5) {
-    if( (hU3 = openUSBConnection(localID)) == NULL){
+    if( (hU6 = openUSBConnection(localID)) == NULL){
       count++;
       printf("Opening failed; reseting and attempting %li of 5 more times \n",count);
-      printf ("....U3 device reset \n");
-      resetU3(0x01);                       // 0x00 = soft reset; 0x01 = reboot
+      printf ("....U6 device reset \n");
+      resetU6(0x01);                       // 0x00 = soft reset; 0x01 = reboot
       sleep (2);
-      resetU3(0x01);                       // 0x00 = soft reset; 0x01 = reboot
+      resetU6(0x01);                       // 0x00 = soft reset; 0x01 = reboot
       sleep (2);
       if (count > 5) return 0;
     } 
@@ -795,13 +794,13 @@ int labjackSetup(){
 
   printf("opened usb\n");
 /*
-  Get calibration information from U3
+  Get calibration information from U6
 */
   printf("getting calib .... ");
-  error = getCalibrationInfo(hU3, &caliInfo);
+  error = getCalibrationInfo(hU6, &caliInfo);
   if(error != 0){
     printf("\n%li - %s\n",error, errormsg[error]);
-    closeUSBConnection(hU3);
+    closeUSBConnection(hU6);
     return 0;
   } 
   printf("got calib \n");
@@ -811,9 +810,9 @@ int labjackSetup(){
 
 
 /***********************************************************/
-void resetU3(uint8 res){
+void resetU6(uint8 res){
 /*
-  Resets U3
+  Resets U6
 */
   uint8 resetIn[4], resetOut[4];
   long int ii=0, error=0;
@@ -827,13 +826,15 @@ void resetU3(uint8 res){
   resetIn[3] = 0x00;
   resetIn[0] = normalChecksum8(resetIn,4);
 
-  if( (error = LJUSB_BulkWrite(hU3, U3_PIPE_EP1_OUT, resetIn, 4)) < 4){
-    LJUSB_BulkRead(hU3, U3_PIPE_EP2_IN, resetOut, 4); 
-    printf("U3 Reset error: %s\n", errormsg[(int)resetOut[3]]);
-    closeUSBConnection(hU3);
+  //  if( (error = LJUSB_BulkWrite(hU3, U3_PIPE_EP1_OUT, resetIn, 4)) < 4){
+  if( (error = LJUSB_BulkWrite(hU6, U6_PIPE_EP1_OUT, resetIn, 4)) < 4){
+    LJUSB_BulkRead(hU6, U6_PIPE_EP2_IN, resetOut, 4); 
+    //    LJUSB_BulkRead(hU3, U3_PIPE_EP2_IN, resetOut, 4); 
+    printf("U6 Reset error: %s\n", errormsg[(int)resetOut[3]]);
+    closeUSBConnection(hU6);
     return;
   }
-  printf ("....U3 device reset \n");
+  printf ("....U6 device reset \n");
   return;
 }
 /***********************************************************/
@@ -1410,14 +1411,15 @@ int readOnOff(char *cmdResult) {
 }
 /******************************************************************************/
 void sendEmail(char subject[]){
-  FILE *fp;
+/*  FILE *fp;
   int status;
   char com[150];
   int ii=0,jj=0;
+*/
 /*
     Modify below by commenting in or out the appropriate email commands
 */
-  printf("%i\n",lnptr->maxAddress);
+/*  printf("%i\n",lnptr->maxAddress);
   for (jj=0; jj < lnptr->maxAddress; jj++){
     printf("loop is: %i %i\n",jj,(int)lnptr->maxAddress);
     //    sprintf (com,"mail -s \"Liquid nitrogen filling failure\" %s < include/fill-failed.txt",lnptr->ge[ii].email);
@@ -1454,10 +1456,10 @@ void sendEmail(char subject[]){
     } 
  */  
   /* close the child process  */  
-    status = pclose(fp);
+/*    status = pclose(fp);
     printf("status = %i\n",status);
   }
-
+*/
   return;
 }
 
