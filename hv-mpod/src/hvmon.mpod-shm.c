@@ -6,13 +6,13 @@
      gcc -Wall -lpthread -ldl -lm -o hvmon hvmon.mpod.c
 */
 
-#include "../include/hvmon.h"
-#include "../include/labjackusb.h"
-#include "../include/kelvin.h"
+#include "../../include/hvmon-shm.h"
+#include "../../include/labjackusb.h"
+#include "../../include/kelvin-shm.h"
 
 void readConf();                  // processes configuration file
-int mmapSetup();                  // sets up the memory map
-
+//int mmapSetup();                  // sets up the memory map
+void shmSetup();
 //  MPOD SNMP related commands
 
 void snmp(int setget, int ii, char *cmd, char *cmdResult);   // snmp get/set commands
@@ -49,7 +49,7 @@ void setReset(int ii);
 void setResetAll();
 void setVMax(int ii);
 int openTherm();
-void closeTherm();
+//void closeTherm();
 void getTemp();
 int checkTemp();
 void changeParam();
@@ -97,7 +97,7 @@ int main(int argc, char **argv){
 */
   //int ii=0;//, result=0;
   //  long int p0=0, p1=1, count=0, etime=0;
-  int mapHVmon, mapTherm=-1;
+  //int mapTherm=-1; //mapHVmon,
   pid_t pid;
   long int p0=0,p1=1;
   int  tOK=0;
@@ -111,8 +111,11 @@ int main(int argc, char **argv){
   Memory map creation and attachment
   the segment number is stored in hvptr->pid
 */
-  mapHVmon = mmapSetup();
-  if (mapHVmon == -1) return 0;
+  //mapHVmon = mmapSetup();
+  //if (mapHVmon == -1) return 0;
+
+  shmSetup();
+
   /*  
    Set up the signal capture routine for when the reading
    program wants something changed
@@ -132,6 +135,7 @@ int main(int argc, char **argv){
 */
   //mapTherm = openTherm();
   readConf();
+  
 /*  
   Setup time of next fill based on current time and configure file
 */
@@ -141,16 +145,8 @@ int main(int argc, char **argv){
   Get the first read of the HV data
 */
   hvptr->com0 = 2;
-  //hvptr->xx[0].onoff = 0;
-  //setOnOff(0);
-  //snmp(1,0, "outputSwitch.u0 i 0",cmdRes);
-  //getHVmpod();
-  /*mapTherm = openTherm();
-  if (mapTherm != -1)
-    tOK = checkTemp();
-  return 0;
-   */
-/*  
+
+  /*  
   Setup monitoring loop to look for changes/minute and requests   
 */
   nread = INTERVAL;
@@ -180,7 +176,11 @@ int main(int argc, char **argv){
          sendEmail();
          hvptr->com0 = -1;
          break;
+      } else 
+      {
+        printf("tok");
       }
+
       signalBlock(p0);
       hvptr->com0 = 0;    // set comand to regular reading or else we lose touch with the CAEN module
 /*
@@ -204,6 +204,9 @@ int main(int argc, char **argv){
          sendEmail();
          hvptr->com0 = -1;
          break;
+      } else 
+      {
+        printf("tok");
       }
       hvptr->com0 = 0;    // test if necessary
       break;
@@ -266,12 +269,21 @@ int main(int argc, char **argv){
    Release the shared memory and close the U3
 
 */
-  if (munmap(hvptr, sizeof (struct hvmon*)) == -1) {
-    perror("Error un-mmapping the file");
+
+  shmdt(hvptr);
+  shmdt(degptr);                     // detach from shared memory segment
+  printf("detached from SHM\n");
+
+  shmctl(hvshmid, IPC_RMID, NULL);
+  shmctl(shmid, IPC_RMID, NULL);    // remove the shared memory segment hopefully forever
+  printf("removed from SHM\n");
+
+//  if (munmap(hvptr, sizeof (struct hvmon*)) == -1) {
+//    perror("Error un-mmapping the file");
 /* Decide here whether to close(fd) and exit() or not. Depends... */
-  }
-  close(mapHVmon);
-  if (mapTherm != -1 ) closeTherm(mapTherm);
+//  }
+//  close(mapHVmon);
+//  if (mapTherm != -1 ) closeTherm(mapTherm);
   
   return 0;
 }
@@ -334,16 +346,16 @@ void setTimer () {
 }
 
 /***********************************************************/
-int mmapSetup() {
+/*int mmapSetup() {
   //#define FILEPATH "data/mmapped.bin"
   //#define FILESIZE sizeof(struct thermometer)
   int fd=0, result=0, ii=0;
-  /* Open a file for writing.
+  * Open a file for writing.
     *  - Creating the file if it doesn't exist.
     *  - Truncating it to 0 size if it already exists. (not really needed)
     *
     * Note: "O_WRONLY" mode is not sufficient when mmaping.
-    */
+    *
   //   fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0644);
    fd = open(HVMONDATAPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0644);
    if (fd == -1) {
@@ -351,7 +363,7 @@ int mmapSetup() {
         exit(EXIT_FAILURE);
    }
 
-  /* Open a file for writing.
+  * Open a file for writing.
     *  - Creating the file if it doesn't exist.
     *  - Truncating it to 0 size if it already exists. (not really needed)
     *
@@ -362,9 +374,9 @@ int mmapSetup() {
         perror("Error opening file for writing");
         exit(EXIT_FAILURE);
    }
-*/
- /* Stretch the file size to the size of the (mmapped) array of ints
-    */
+*
+ * Stretch the file size to the size of the (mmapped) array of ints
+    *
    //   for (ii=0; ii<sizeof (struct thermometer); ii++){
    for (ii=0; ii<HVMONDATASIZE; ii++){
      result = write(fd, "D", 1);
@@ -374,15 +386,15 @@ int mmapSetup() {
        exit(EXIT_FAILURE);
      }
    };
-   /*
+   *
    result = lseek(fd, FILESIZE-1, SEEK_SET);
    if (result == -1) {
         close(fd);
         perror("Error calling lseek() to 'stretch' the file");
         exit(EXIT_FAILURE);
    }
-   */
-   /* Something needs to be written at the end of the file to
+   *
+   * Something needs to be written at the end of the file to
     * have the file actually have the new size.
     * Just writing an empty string at the current file position will do.
     *
@@ -391,35 +403,61 @@ int mmapSetup() {
     *    file due to the call to lseek().
     *  - An empty string is actually a single '\0' character, so a zero-byte
     *    will be written at the last byte of the file.
-    */
-   /*
+    *
+   *
    result = write(fd, "", 1);
    if (result != 1) {
         close(fd);
         perror("Error writing last byte of the file");
         exit(EXIT_FAILURE);
    }
-   */
+   *
 
-   /* Now the file is ready to be mmapped.
-    */
+   * Now the file is ready to be mmapped.
+    *
    hvptr = (struct hvmon*) mmap(0, HVMONDATASIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
    if (hvptr == MAP_FAILED) {
         close(fd);
         perror("Error mmapping the hvmon file");
         exit(EXIT_FAILURE);
    }
-   /* Don't forget to free the mmapped memory
-    */
-   /*
+   * Don't forget to free the mmapped memory
+    *
+   *
   //   if (munmap(degptr, FILESIZE) == -1) {
   if (munmap(degptr, sizeof (struct thermometer*)) == -1) {
     perror("Error un-mmapping the file");
     close(fd);
     fd = -1;
   }
-   */
+   
    return (fd);
+}
+*/
+/**************************************************************/
+
+void shmSetup() {
+
+  printf("Setting up shared memory...\n");//hvmon.conf
+  hvshmKey = ftok(CONFIGFILE,'b');       // key unique identifier for shared memory, other programs use 'LN' tag
+  //  shmKey = ftok("SHM_PATH",'b');                                    // key unique identifier for shared memory, other programs use 'LN' tag
+  hvshmid = shmget(hvshmKey, sizeof (struct hvmon), 0666 | IPC_CREAT);     // gets ID of shared memory, size, permissions, create if necessary
+  hvptr = shmat (hvshmid, (void *)0, 0);                                  // now link to area so it can be used; struct lnfill pointer char *lnptr
+  if (hvptr == (struct hvmon *)(-1)){                                  // check for errors
+    perror("shmat");
+  }
+
+  hvptr->shm = hvshmid;   // this is the number of the shared memory segment
+  printf("ok...%li" ,hvshmid);
+  //  pid = getpid();    // this gets process number of this program
+  //  hvptr->pid= pid;   // this is the pid number for the SIGALRM signals
+
+/*
+  printf("pid = %li \n",(long int)hvptr->pid);
+  printf ("shm size = %li\n",sizeof (struct hvmon) );
+  printf("... set shared memory...\n");
+*/
+  return;
 }
 /***********************************************************/
 
@@ -834,16 +872,30 @@ void snmp(int setget, int ii, char *cmd, char *cmdResult) {
 needs to communicate to MPOD
 *******************************************************************************/
 /*****************************************************************/
-
 int openTherm() {
+
+  shmKey = ftok(KELVINCONF,'b'); 
+  shmid = shmget(shmKey, KELVINDATASIZE, 0666 | IPC_CREAT);
+  degptr = (struct thermometer*) shmat (shmid, (void *)0, 0);  // now link to area so it can be used; struct lnfill pointer char 
+
+  if (degptr == (struct thermometer *)(-1)){                                  // check for errors
+    perror("kelvin shmat");
+  }
+
+ // printf("ok...%li" ,shmid);
+  return (shmid);
+
+}
+/*****************************************************************/
+/*int openTherm() {
   int fd;                 // mapped file descriptor
   //  char fileTherm[200] = "data/mmapped.bin";
-/* Open a file for writing.
+* Open a file for writing.
      *  - Creating the file if it doesn't exist.
      *  - Truncating it to 0 size if it already exists. (not really needed)
      *
      * Note: "O_WRONLY" mode is not sufficient when mmaping.
-*/
+*
   fd = open(KELVINDATAPATH, O_RDWR, (mode_t)0600);
   if (fd == -1) {
     perror("Error opening for writing ");
@@ -851,21 +903,22 @@ int openTherm() {
     exit(EXIT_FAILURE);
   }
         
-/* Now the file is ready to be mmapped.
-*/
+* Now the file is ready to be mmapped.
+*
   degptr = (struct thermometer*) mmap(0,KELVINDATASIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (degptr == MAP_FAILED) {
     close(fd);
     perror("Error mmapping the file kelvin data");
     exit(EXIT_FAILURE);
   }
-/* Don't forget to free the mmapped memory ... usually at end of main
-*/
+* Don't forget to free the mmapped memory ... usually at end of main
+*
     
   return (fd);
 }
+*/
 /**************************************************************/
-void closeTherm(int mapTherm){
+/*void closeTherm(int mapTherm){
 
   if (mapTherm != -1 ) {            // if thermometers active
     degptr->com3 = 0;               // set daq logging flag off (writing to SHM from this program at start/stop only)
@@ -877,7 +930,7 @@ void closeTherm(int mapTherm){
 
   return;
 }
-
+*/
 
 /**************************************************************/
 

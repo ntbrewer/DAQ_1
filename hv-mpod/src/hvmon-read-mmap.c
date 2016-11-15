@@ -7,7 +7,7 @@
      gcc -Wall -lm -o hvmon-read hvmon-read.c
 */
 
-#include "../include/hvmon.h"
+#include "../../include/hvmon.h"
 
 
 int mmapSetup();                  // sets up the memory map
