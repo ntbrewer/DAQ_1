@@ -673,7 +673,17 @@ long eAIN(HANDLE Handle,
       degC = (involts-0.4267)/0.001544;
       degK = degC + 273.15;
       degF = degC*1.8 + 32;
-  } 
+  }  if (degptr->temps[ii].model == 1089){ //RMDAPD Testing     
+      degC = involts*1000;
+      degK = involts;
+      degF = involts;
+      refVolt = involts;
+  }
+  if (degptr->temps[ii].model == 1088){      
+      degC = ((involts-refVolt)-.509)/0.00645;
+      degK = degC + 273.15;
+      degF = degC*1.8 + 32;
+  }
   if (degptr->temps[ii].model == 1000){      
       degC = (involts)*1000;
       degK = degC;
