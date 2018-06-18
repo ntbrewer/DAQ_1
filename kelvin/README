@@ -1,7 +1,7 @@
 
 
 kelvin:
-gcc -Wall -lm -llabjackusb u3.o -o kelvin-u3 kelvin-u3.c
+gcc -Wall -o kelvin-read ../include/u3.o src/kelvin-log.c -lm -llabjackusb
 
 kelvin-read:
 gcc -Wall -o kelvin-read kelvin-read.c
