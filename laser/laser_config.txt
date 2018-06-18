@@ -1,0 +1,46 @@
+################################################################################
+#
+# FILE:    laser_config.txt
+# AUTHOR:  DVM
+# CREATED: 2018-06-13
+# UPDATED: 2018-06-13
+#
+# COMPLIMENTARY FILES: laser_config.py
+#
+########################################
+# DESCRIPTION:
+#
+# These settings will be read by laser_config.py and applied to the laser
+# pulser. All empty lines and lines starting with '#' will be ignored.
+#
+################################################################################
+
+# MODE (pulse [MO PL] or impulse [MO IM])
+
+MO PL
+
+# TRIGGER (internal [TR IN <FREQUENCY IN Hz>] or single cycle [TR SC])
+#-- note for DVM: EX only triggers SC if it is the last command
+
+TR IN 1E3
+
+# TIMING DELAY ([TI DL <TIME IN SECONDS>])
+
+TI DL 0
+
+# TIMING WIDTH ([TI WD <TIME IN SECONDS>])
+
+TI WD 1E-3
+
+# LEVEL BASELINE ([LV BL <BASELINE LEVEL IN WATTS>])
+#-- note for DVM: verify units
+
+LV BL 1E-3
+
+# LEVEL PEAK ([LV PK <PEAK LEVEL IN WATTS>])
+#-- note for DVM: verify units
+
+LV PK 1E3
+
+
+################################################################################
