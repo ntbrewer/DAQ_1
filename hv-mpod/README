@@ -8,4 +8,32 @@ When other CAEN systems are needed, the .conf file and hvptr->
 structure of the mapped memory should gain a caen system flag
 for each channel.
 
+Makefile can be used for any of the possibilities:
+of using configurations:
+u3/mmap  
+u6/mmap
+u3/shm
+u6/shm
+
+u3 or u6 means the labjack model being used.
+mmap or shm means writing to DAQ_1/data or to a shared memory segment
+
+make or make all produces all files necessary to run with labels signifying the 6 cases for main program and reader. 
+these are named generally as programname-LabJackType-MemoryMode
+or using generallly
+make all-LabJackType-MemoryMode will produce 3 files:
+lnfill
+and 
+lnfill-log
+and
+lnfill-read
+
+example:
+make 
+compiles:
+lnfill-u3-mmap lnfill-u6-mmap lnfill-log-mmap lnfill-read-mmap lnfill-u3-shm lnfill-u6-shm lnfill-log-shm lnfill-read-shm
+
+make all-u3-mmap
+compiles:
+lnfill lnfill-log lnfill-read
 

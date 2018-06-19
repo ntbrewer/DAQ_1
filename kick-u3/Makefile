@@ -11,7 +11,7 @@ kick-read:$(SOURCES)kick-read.c
 	gcc -Wall -o kick-read $(SOURCES)kick-read.c
 
 kick-mon:$(SOURCES)kick-mon.c
-	gcc -Wall `pkg-config --cflags --libs gtk+-3.0` -o kick-mon $(SOURCES)kick-mon.c
+	gcc -Wall -o kick-mon $(SOURCES)kick-mon.c `pkg-config --cflags --libs gtk+-3.0`
 
 clean:
 	rm kick-u3 kick-read kick-mon
