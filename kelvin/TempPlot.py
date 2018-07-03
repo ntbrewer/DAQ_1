@@ -17,15 +17,36 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import pexpect as pxp
 import time
 import numpy as np
 import sys
 
+def getFileName():
+    try:
+        s=pxp.run('ls -rt log/').split()[-1].decode()
+    except IndexError:
+        print('file not found: input filename')
+        s=input()
+    if s!='':
+        return('log/'+s)
+    else:
+        file_name='log/therm-WedSep3013:45:052015.log'
+        print('Warning, standard usage is: ./TempPlot.py file_name\nusing default file name:' + file_name)
+
+def getLines(filename):
+    """
+    maybe add way to return max number of lines and check that request cannot be bigger?
+    """
+    inf = open(filename,"r")
+    lines = inf.readlines()
+    inf.close()
+    return(lines)
+
 try:
     file_name=sys.argv[1]
 except IndexError:
-    file_name='log/therm-WedSep3013:45:052015.log'
-    print('Warning, standard usage is: ./TempPlot.py file_name \nusing default file name:' + file_name)
+    file_name = getFileName()
 
 inf=open(file_name)
 lines=inf.readlines()
@@ -102,5 +123,5 @@ plt.plot_date(tdat,d4dat,'ko')
 #plt.legend(['E5'])
 #plt.plot_date(tdat,e5dat,'ko')
 plt.show()
-
+#plt.savefig('62718Kelvin.png')
 #print('done')
