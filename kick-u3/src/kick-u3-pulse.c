@@ -103,7 +103,7 @@ int main(int argc, char **argv){
 /*  
    Read setup file on disk and load into shared memory
 */
-  clearParameters();
+  clearParameters(); //This sets default width used by readConf();
   clearStats();
   printf("Read conf file...\n");
   ljmax = readConf();                          // this routine calls labjackSetup since we allow more than 1 labjack
@@ -575,6 +575,7 @@ int modeBackground(){
   beginTimer(mtcptr->tmove);
   mtcptr->tapeFault = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
+
   if (mtcptr->numMove == 2){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
     //    writeLJ(mtcptr->ljh, arrAllOff_BKG, 14);
@@ -1074,6 +1075,7 @@ int readConf() {
    Now load the data into the shared memory structure
 */
     mtcptr->pon.ms = 0;      
+    int width = (mtcptr->trigDT);
     /*  
     if (ii == -1) {
       mtcBreak =  findLJchan2(ch0);
@@ -1151,6 +1153,32 @@ int readConf() {
       break;
     }
   }
+
+/*
+  Shrink times for width at the beginning and end (*2)
+*/
+
+  if (mtcptr->bon.ms > 2* width) 
+  {
+    mtcptr->bon.ms -= 2*width;
+    mtcptr->bon = time_In_ms(mtcptr->bon);
+  }
+  if (mtcptr->boff.ms > 2* width) 
+  {
+    mtcptr->boff.ms -= 2*width;
+    mtcptr->boff = time_In_ms(mtcptr->boff);
+  }
+  if (mtcptr->boff.ms > 2* width) 
+  {
+    mtcptr->tmove.ms -= 2*width;
+    mtcptr->tmove = time_In_ms(mtcptr->tmove);
+  }
+  if (mtcptr->lon.ms > 2* width) 
+  {
+    mtcptr->lon.ms -= 2*width;
+    mtcptr->lon = time_In_ms(mtcptr->lon);
+  }
+
 
 /*  
   Setup pause times and labjack
