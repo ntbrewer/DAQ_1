@@ -61,6 +61,7 @@ struct mtc_par {
   struct sec_us boff;              // time for beam off in ms
   struct sec_us lon;               // time for lite on in ms
   struct sec_us pon;               // time for pause on in ms
+  struct sec_us tdt;              // time of trigger width in ms
 } ;
 
 struct mtc_par *mtcptr;

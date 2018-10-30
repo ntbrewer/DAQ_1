@@ -294,21 +294,21 @@ int modeData(){
     beginTimer(mtcptr->bon);*/
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);   //beam on pulse
     printf ("beam on no measure %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
-    beginTimer(mtcptr->trigDT);                //wait for width
+    beginTimer(mtcptr->tdt);                //wait for width
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);  //check to see beam trigger signal persists (needs to)
     beginTimer(mtcptr->bon);                   //wait for corr. time
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    beginTimer(mtcptr->trigDT);                //wait for width
+    beginTimer(mtcptr->tdt);                //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOn, 14);
     printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
-    beginTimer(mtcptr->trigDT);               //wait for width
+    beginTimer(mtcptr->tdt);               //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); 
     beginTimer(mtcptr->bon);                  //wait for corr. time
     writeLJ(mtcptr->ljh, arrBeamOn, 14);
-    beginTimer(mtcptr->trigDT);               //wait for width
+    beginTimer(mtcptr->tdt);               //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it
   }
 
@@ -349,17 +349,17 @@ int modeData(){
     //    printf("MTC on for normal \n");
     writeLJ(mtcptr->ljh, arrMTC, 14);      //begin move
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     writeLJ(mtcptr->ljh, arrBeamOff, 14);   //needs MTC off?
     beginTimer(mtcptr->tmove);
     writeLJ(mtcptr->ljh, arrMTC, 14);
-    beginTimer(mtcptr->trigDT);            //end move
+    beginTimer(mtcptr->tdt);            //end move
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
     printf ("normal tape move %i, %i \n",arrMTC[12], arrMTC[13]);
     writeLJ(mtcptr->ljh, arrBeamOn, 14);   //beam on for width?
     //printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it 
   }
 /* --------------- Mode option end ------------------------------ */
@@ -374,22 +374,22 @@ int modeData(){
     printf ("beam on while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); */
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);   //beam on pulse
     printf ("beam on no measure %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
-    beginTimer(mtcptr->trigDT);                //wait for width
+    beginTimer(mtcptr->tdt);                //wait for width
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);  //check to see beam trigger signal persists (needs to)
     beginTimer(mtcptr->boff);                   //wait for corr. time
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    beginTimer(mtcptr->trigDT);                //wait for width
+    beginTimer(mtcptr->tdt);                //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]);
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
     beginTimer(mtcptr->boff);
     printf ("wait %i, %i \n",arrBeamOff[12], arrBeamOff[13]);
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); 
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
   }
@@ -422,11 +422,11 @@ int modeData(){
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
   writeLJ(mtcptr->ljh, arrMTC, 14);                 // mtc on = only tape movement in takeaway, common in all modes;
   printf ("first  tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
-  beginTimer(mtcptr->trigDT);
+  beginTimer(mtcptr->tdt);
   writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it 
   beginTimer(mtcptr->tmove);
   writeLJ(mtcptr->ljh, arrMTC, 14);
-  beginTimer(mtcptr->trigDT);
+  beginTimer(mtcptr->tdt);
   mtcptr->tapeFault = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
   writeLJ(mtcptr->ljh, arrBeamOff, 14);
@@ -440,11 +440,11 @@ int modeData(){
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
     usleep(10000);
     writeLJ(mtcptr->ljh, arrMTC, 14);
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     writeLJ(mtcptr->ljh, arrBeamOff, 14); 
     beginTimer(mtcptr->tmove);
     writeLJ(mtcptr->ljh, arrMTC, 14);
-    beginTimer(mtcptr->trigDT);
+    beginTimer(mtcptr->tdt);
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
@@ -1098,7 +1098,6 @@ int readConf() {
    Now load the data into the shared memory structure
 */
     mtcptr->pon.ms = 0;      
-    int width = (mtcptr->trigDT);
     /*  
     if (ii == -1) {
       mtcBreak =  findLJchan2(ch0);
@@ -1153,8 +1152,8 @@ int readConf() {
       if (t0 < 16) mtcptr->trigDT=16;         //ensures 16 us<trigDt<4080 (ie kk=<255)
       else if (t0 > 4080) mtcptr->trigDT=4080;
       else mtcptr->trigDT=t0;
-      mtcptr->trigDT.ms = t0;
-      mtcptr->trigDT = time_In_ms(mtcptr->trigDT);  // set sec and us values in structure
+      mtcptr->tdt.ms = t0;
+      mtcptr->tdt = time_In_ms(mtcptr->tdt);  // set sec and us values in structure
       break;
     case 6:
       mtcptr->bkg[0] = findLJchan0(ch0);             // bkg channel
@@ -1182,24 +1181,24 @@ int readConf() {
   It has to go here or else width isn't set. 
 */
 
-  if (mtcptr->bon.ms > 2* width) 
+  if (mtcptr->bon.ms > 2* mtcptr->trigDT) 
   {
-    mtcptr->bon.ms -= 2*width;
+    mtcptr->bon.ms -= 2*mtcptr->trigDT;
     mtcptr->bon = time_In_ms(mtcptr->bon);
   }
-  if (mtcptr->boff.ms > 2* width) 
+  if (mtcptr->boff.ms > 2* mtcptr->trigDT) 
   {
-    mtcptr->boff.ms -= 2*width;
+    mtcptr->boff.ms -= 2*mtcptr->trigDT;
     mtcptr->boff = time_In_ms(mtcptr->boff);
   }
-  if (mtcptr->boff.ms > 2* width) 
+  if (mtcptr->boff.ms > 2* mtcptr->trigDT) 
   {
-    mtcptr->tmove.ms -= 2*width;
+    mtcptr->tmove.ms -= 2*mtcptr->trigDT;
     mtcptr->tmove = time_In_ms(mtcptr->tmove);
   }
-  if (mtcptr->lon.ms > 2* width) 
+  if (mtcptr->lon.ms > 2* mtcptr->trigDT) 
   {
-    mtcptr->lon.ms -= 2*width;
+    mtcptr->lon.ms -= 2*mtcptr->trigDT;
     mtcptr->lon = time_In_ms(mtcptr->lon);
   }
 
