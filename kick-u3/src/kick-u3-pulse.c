@@ -27,27 +27,31 @@ long int findLJchan2(char *aaa);  // used by readConf to identify digital input 
 void pulseLaser(HANDLE hu3, long int tcStart, double numPulses);  // used to issue trigger pulses to the laser - fixed at 1 pulse per ms  
 
 /* Arrays that control the cycle   */
-uint8 arrMTC[14];         // array of commands sent to labjack for MTC movement
-uint8 arrBeamOn[14];      // array of commands sent to labjack for beam ON
-uint8 arrBeamOnMeas[14];  // array of commands sent to labjack for beam on and measuring signal
-uint8 arrBeamOff[14];     // array of commands sent to labjack for beam OFF
-uint8 arrBeamOffMeas[14]; // array of commands sent to labjack for beam OFF
-uint8 arrLite[14];        // array of commands sent to labjack for laser lite
-uint8 arrLiteBeam[14];    // array of commands sent to labjack for laser lite
-uint8 arrTrig[16];        // array of commands sent to labjack for trgger signal
-uint8 arrTrigBeam[16];    // array of commands sent to labjack for trgger signal
-uint8 arrAllOff[14];      // array of commands sent to labjack for trgger signal
+uint8 arrMTC[14];         // array of commands sent to labjack for MTC movement (mtc + kick)
+uint8 arrBeamOn[14];      // array of commands sent to labjack for beam ON (beam)
+uint8 arrBeamOnMeas[14];  // array of commands sent to labjack for beam ON and measuring signal (beam + measure)
+uint8 arrBeamOff[14];     // array of commands sent to labjack for beam OFF (kick)
+uint8 arrBeamOffMeas[14]; // array of commands sent to labjack for beam OFF and measuring signal (kick + measure)
+uint8 arrLite[14];        // array of commands sent to labjack for laser lite (laser + kick)
+uint8 arrLiteBeam[14];    // array of commands sent to labjack for laser lite (laser + beam)
+uint8 arrTrig[16];        // array of commands sent to labjack for trgger signal (trigger + kick)
+uint8 arrTrigBeam[16];    // array of commands sent to labjack for trgger signal (trigger + beam)
+uint8 arrAllOff[14];      // array of commands sent to labjack for trgger signal (0)
 
-uint8 arrMTC_BKG[14];                  // array of commands sent to labjack for MTC movement background
-uint8 arrBeamOn_BKG[14];               // array of commands sent to labjack for beam ON background
-uint8 arrBeamOnMeas_BKG[14];           // array of commands sent to labjack for beam on and measuring signal
-uint8 arrBeamOff_BKG[14];              // array of commands sent to labjack for beam OFF background
-uint8 arrBeamOffMeas_BKG[14];          // array of commands sent to labjack for beam OFF background
-uint8 arrLite_BKG[14];                 // array of commands sent to labjack for laser lite background
-uint8 arrLiteBeam_BKG[14];             // array of commands sent to labjack for laser lite background
-uint8 arrTrig_BKG[16];                 // array of commands sent to labjack for trgger signal background
-uint8 arrTrigBeam_BKG[16];             // array of commands sent to labjack for trgger signal background
-uint8 arrAllOff_BKG[14];               // array of commands sent to labjack for trgger signal
+//??  uint8 arrLiteTrigOff[14];
+//??  uint8 arrMTCTrigOff[14];
+
+uint8 arrMTC_BKG[14];                  // array of commands sent to labjack for MTC movement background (mtc + kick + bkg)
+uint8 arrBeamOn_BKG[14];               // array of commands sent to labjack for beam ON background (beam + bkg)
+uint8 arrBeamOnMeas_BKG[14];           // array of commands sent to labjack for beam on and measuring signal (beam + measure + bkg)
+uint8 arrBeamOff_BKG[14];              // array of commands sent to labjack for beam OFF background (kick + bkg)
+uint8 arrBeamOffMeas_BKG[14];          // array of commands sent to labjack for beam OFF background (kick + measure + bkg)
+uint8 arrLite_BKG[14];                 // array of commands sent to labjack for laser lite background (laser + kick + bkg)
+uint8 arrLiteBeam_BKG[14];             // array of commands sent to labjack for laser lite background (laser + beam + bkg)
+uint8 arrTrig_BKG[16];                 // array of commands sent to labjack for trgger signal background (trigger + kick + bkg)
+uint8 arrTrigBeam_BKG[16];             // array of commands sent to labjack for trgger signal background (trigger + beam + bkg)
+uint8 arrAllOff_BKG[14];               // array of commands sent to labjack for trgger signal (bkg)
+
 long int mtcBreak=0, mtcFault=0;       // digital I/O channels for reading MTC faults
 long int tcStart=0;                    // digital timer (start) channels for sending fixed number of triggers to laser
 
@@ -289,13 +293,10 @@ int modeData(){
   //  printf("Beam on \n"); 
 
   if (mtcptr->beammeas){                          // beam on
-    /*writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    printf ("beam on meas %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
-    beginTimer(mtcptr->bon);*/
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);   //beam on pulse
     printf ("beam on no measure %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
     beginTimer(mtcptr->tdt);                //wait for width
-    writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);  //check to see beam trigger signal persists (needs to)
+    writeLJ(mtcptr->ljh, arrBeamOn, 14);  //check to see beam trigger signal persists (needs to)
     beginTimer(mtcptr->bon);                   //wait for corr. time
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
     beginTimer(mtcptr->tdt);                //wait for width
@@ -305,9 +306,9 @@ int modeData(){
     writeLJ(mtcptr->ljh, arrBeamOn, 14);
     printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
     beginTimer(mtcptr->tdt);               //wait for width
-    writeLJ(mtcptr->ljh, arrBeamOff, 14); 
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14); don't turn off beam...
     beginTimer(mtcptr->bon);                  //wait for corr. time
-    writeLJ(mtcptr->ljh, arrBeamOn, 14);
+    //writeLJ(mtcptr->ljh, arrBeamOn, 14);
     beginTimer(mtcptr->tdt);               //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it
   }
@@ -317,7 +318,7 @@ int modeData(){
 /* --------------- Mode option begin ------------------------------ */
   if(mtcptr->pause){                        // Pause option: stop beam, wait w/out meas, mtc on
     //printf("Pause on\n");     
-    writeLJ(mtcptr->ljh, arrBeamOff, 14);
+    // not necessary?? writeLJ(mtcptr->ljh, arrBeamOff, 14);
     mtcptr->gtkstat = 2;                        // report status for gtk monitor program
     beginTimer(mtcptr->pon);
     writeLJ(mtcptr->ljh, arrMTC, 14);
@@ -350,16 +351,16 @@ int modeData(){
     writeLJ(mtcptr->ljh, arrMTC, 14);      //begin move
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
     beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff, 14);   //needs MTC off?
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14);   //needs separate signal for acq MTC on/off
     beginTimer(mtcptr->tmove);
-    writeLJ(mtcptr->ljh, arrMTC, 14);
+    //writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tdt);            //end move
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
     printf ("normal tape move %i, %i \n",arrMTC[12], arrMTC[13]);
-    writeLJ(mtcptr->ljh, arrBeamOn, 14);   //beam on for width?
+    //writeLJ(mtcptr->ljh, arrBeamOn, 14);   //beam on for width? no.
     //printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it 
   }
 /* --------------- Mode option end ------------------------------ */
@@ -370,27 +371,26 @@ int modeData(){
 
   if (mtcptr->measbeam){                         // measure with beam on or off
     /*writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    beginTimer(mtcptr->boff);
-    printf ("beam on while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); */
+    beginTimer(mtcptr->boff);*/
+    printf ("beam on while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); 
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);   //beam on pulse
-    printf ("beam on no measure %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
     beginTimer(mtcptr->tdt);                //wait for width
-    writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);  //check to see beam trigger signal persists (needs to)
+    writeLJ(mtcptr->ljh, arrBeamOn, 14);  //check to see beam trigger signal persists (needs to)
     beginTimer(mtcptr->boff);                   //wait for corr. time
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
     beginTimer(mtcptr->tdt);                //wait for width
     writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it
   }
   else {
+    printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]);
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
     beginTimer(mtcptr->tdt);
-    printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]);
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
     beginTimer(mtcptr->boff);
-    printf ("wait %i, %i \n",arrBeamOff[12], arrBeamOff[13]);
+    //printf ("wait %i, %i \n",arrBeamOff[12], arrBeamOff[13]);
     writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
     beginTimer(mtcptr->tdt);
-    printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); 
+    //printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); 
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -402,7 +402,7 @@ int modeData(){
 
     if (mtcptr->laserbeam) {                        // laser with beam on or off AFTER MEASURING
       writeLJ(mtcptr->ljh, arrLiteBeam, 14);
-      usleep(1000);                               // add slight delay between labjack commands
+      usleep(1000);                               // add slight delay between labjack commands maybe for others
       pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
     }
@@ -411,7 +411,7 @@ int modeData(){
       usleep(1000);                               // add slight delay between labjack commands
       pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
-    }
+    } //lon adjusted for 'slight delay?'
 
    printf ("lasering %i, %i \n",arrLite[12], arrLite[13]); 
   }
@@ -422,11 +422,11 @@ int modeData(){
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
   writeLJ(mtcptr->ljh, arrMTC, 14);                 // mtc on = only tape movement in takeaway, common in all modes;
   printf ("first  tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
-  beginTimer(mtcptr->tdt);
-  writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it 
-  beginTimer(mtcptr->tmove);
-  writeLJ(mtcptr->ljh, arrMTC, 14);
-  beginTimer(mtcptr->tdt);
+  //beginTimer(mtcptr->tdt);
+  //writeLJ(mtcptr->ljh, arrBeamOff, 14); //end it 
+  //beginTimer(mtcptr->tmove);
+  //writeLJ(mtcptr->ljh, arrMTC, 14);
+  //beginTimer(mtcptr->tdt);
   mtcptr->tapeFault = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
   writeLJ(mtcptr->ljh, arrBeamOff, 14);
@@ -441,13 +441,13 @@ int modeData(){
     usleep(10000);
     writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff, 14); 
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14); 
     beginTimer(mtcptr->tmove);
-    writeLJ(mtcptr->ljh, arrMTC, 14);
+    //writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tdt);
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
-    writeLJ(mtcptr->ljh, arrBeamOff, 14);
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14);
   
     /*beginTimer(mtcptr->tmove);
     mtcptr->tapeFault = readMTC(mtcBreak);
