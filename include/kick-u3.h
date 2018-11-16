@@ -42,6 +42,8 @@ struct mtc_par {
   uint8 trig[2];
   uint8 kck[2];
   uint8 bkg[2];
+  uint8 pulse_e[9];                  // vector storing output code word channels if eio
+  uint8 pulse_c[9];                  // vector storing output code word channels if cio
   pid_t pid;                       // process ID
   HANDLE ljh;
   long int lj;
@@ -68,3 +70,4 @@ struct mtc_par *mtcptr;
 #define FILESIZE sizeof(struct mtc_par)
 #define FILEPATH "../data/mtc.bin"
 #define kick_conf "../include/kick-u3.conf"
+#define pulse_conf "../include/kick-u3-pulse.conf"
