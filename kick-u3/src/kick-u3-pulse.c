@@ -37,9 +37,6 @@ uint8 arrTrig_Pulse[16];        // array of commands sent to labjack for trgger 
 uint8 arrTrigBeam_Pulse[16];    // array of commands sent to labjack for trgger signal (trigger + beam)
 uint8 arrAllOff_Pulse[14];      // array of commands sent to labjack for trgger signal (0)
 
-//??  uint8 arrLiteTrigOff[14];
-//??  uint8 arrMTCTrigOff[14];
-
 uint8 arrMTC_BKG_Pulse[14];                  // array of commands sent to labjack for MTC movement background (mtc + kick + bkg)
 uint8 arrBeamOn_BKG_Pulse[14];               // array of commands sent to labjack for beam ON background (beam + bkg)
 uint8 arrBeamOnMeas_BKG_Pulse[14];           // array of commands sent to labjack for beam on and measuring signal (beam + measure + bkg)
@@ -62,9 +59,6 @@ uint8 arrLiteBeam[14];    // array of commands sent to labjack for laser lite (l
 uint8 arrTrig[16];        // array of commands sent to labjack for trgger signal (trigger + kick)
 uint8 arrTrigBeam[16];    // array of commands sent to labjack for trgger signal (trigger + beam)
 uint8 arrAllOff[14];      // array of commands sent to labjack for trgger signal (0)
-
-//??  uint8 arrLiteTrigOff[14];
-//??  uint8 arrMTCTrigOff[14];
 
 uint8 arrMTC_BKG[14];                  // array of commands sent to labjack for MTC movement background (mtc + kick + bkg)
 uint8 arrBeamOn_BKG[14];               // array of commands sent to labjack for beam ON background (beam + bkg)
@@ -404,7 +398,7 @@ int modeData(){
       beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrLiteBeam, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimerDiff(mtcptr->lon, mtcptr->tdt);
     }
     else {
@@ -412,7 +406,7 @@ int modeData(){
       beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrLite, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimerDiff(mtcptr->lon, mtcptr->tdt);
     }
    printf ("lasering %i, %i \n",arrLite[12], arrLite[13]); 
@@ -550,7 +544,7 @@ int modeBackground(){
       beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrLiteBeam_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser ?? Needs lon.ms-tdt.ms ??
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser ?? Needs lon.ms-tdt.ms ??
       beginTimerDiff(mtcptr->lon, mtcptr->tdt);
     }
     else {
@@ -558,7 +552,7 @@ int modeBackground(){
       beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrLite_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimerDiff(mtcptr->lon, mtcptr->tdt);
     }
   }
@@ -599,13 +593,19 @@ int modeBackground(){
 void loadArrays(){
   uint8 ii=0,jj=0,kk=0;
 
+  /** Arrays for sending logic and control signals **/
 //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
   // move mtc with no beam  (beamOFF)
-  ii = mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[0];
-  jj = mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[0]; //mtcptr->mtc[1] + mtcptr->kck[1];
+  ii = mtcptr->mtc[0] + mtcptr->kck[0] 
+       + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[0];
+  jj = mtcptr->mtc[1] + mtcptr->kck[1] 
+       + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[0]; //mtcptr->mtc[1] + mtcptr->kck[1];
   cmdLJ(arrMTC_Pulse,ii,jj);
-  ii = mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[5] + mtcptr->pulse_e[1];
-  jj = mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[5] + mtcptr->pulse_c[1]; //+= mtcptr->bkg[1];
+
+  ii = mtcptr->mtc[0] + mtcptr->kck[0] + mtcptr->bkg[0] 
+       + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[5] + mtcptr->pulse_e[1];
+  jj = mtcptr->mtc[1] + mtcptr->kck[1] + mtcptr->bkg[1] 
+       + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[5] + mtcptr->pulse_c[1]; //+= mtcptr->bkg[1];
   cmdLJ(arrMTC_BKG_Pulse,ii,jj);
   
   ii = mtcptr->beam[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6]
@@ -613,15 +613,17 @@ void loadArrays(){
   jj = mtcptr->beam[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] 
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[4] ;
   cmdLJ(arrBeamOn_Pulse,ii,jj);
+
   ii = mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[5] + mtcptr->pulse_e[4] + mtcptr->pulse_e[0];
-  jj = mtcptr->beam[0] + mtcptr->bkg[1] + mtcptr->kck[1]
+  jj = mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[5] + mtcptr->pulse_c[4] + mtcptr->pulse_c[0];
   cmdLJ(arrBeamOn_BKG_Pulse,ii,jj);
 
   ii = mtcptr->beam[0] + mtcptr->meas[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[4] + mtcptr->pulse_e[1];   // measuring with beam   (beam ON)
   jj = mtcptr->beam[1] + mtcptr->meas[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[4] + mtcptr->pulse_c[1];
   cmdLJ(arrBeamOnMeas_Pulse,ii,jj);
+
   ii = mtcptr->beam[0] + mtcptr->meas[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[7] + mtcptr->pulse_e[4] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
   jj = mtcptr->beam[1] + mtcptr->meas[1] + mtcptr->bkg[1] + mtcptr->kck[1]
@@ -632,6 +634,7 @@ void loadArrays(){
        // measuring with no beam (beamOFF)
   jj = mtcptr->meas[1] + mtcptr->kck[1] + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1];
   cmdLJ(arrBeamOffMeas_Pulse,ii,jj);
+
   ii = mtcptr->meas[0] + mtcptr->kck[0] + mtcptr->bkg[0]
        + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3] 
        + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
@@ -647,6 +650,7 @@ void loadArrays(){
   //  ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->meas[0];    // laser lite with measuring but no beam  (beam OFF)
   //  jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->meas[1];
   cmdLJ(arrLite_Pulse,ii,jj);
+
   ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->bkg[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[2];
   jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->bkg[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[5] + mtcptr->pulse_c[2];
   cmdLJ(arrLite_BKG_Pulse,ii,jj);
@@ -658,6 +662,7 @@ void loadArrays(){
   //  ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->meas[0];    // laser lite with measuring and with beam  (beam ON)
   //  jj = mtcptr->lite[1] + mtcptr->beam[1] + mtcptr->meas[1];
   cmdLJ(arrLiteBeam_Pulse,ii,jj);
+
   ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1];
   jj = mtcptr->lite[1] + mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
@@ -667,6 +672,7 @@ void loadArrays(){
   ii = mtcptr->kck[0] + mtcptr->pulse_e[7] + mtcptr->pulse_e[3] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0]; // just beam OFF no measuring (beam OFF)
   jj = mtcptr->kck[1] + mtcptr->pulse_c[7] + mtcptr->pulse_c[3] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
   cmdLJ(arrBeamOff_Pulse,   ii,jj);
+
   ii = mtcptr->kck[0] + mtcptr->bkg[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[6] 
        + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[0];
   jj = mtcptr->kck[1] + mtcptr->bkg[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[6] 
@@ -681,6 +687,7 @@ void loadArrays(){
   else if (mtcptr->trigDT > 4080)mtcptr->trigDT=4080;
   kk = (uint8) (mtcptr->trigDT/16);
   cmdpauseLJ(arrTrigBeam_Pulse, ii,jj,kk);
+
   ii = mtcptr->trig[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3];
   jj = mtcptr->trig[1] + mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
@@ -692,6 +699,7 @@ void loadArrays(){
   jj = mtcptr->trig[1] + mtcptr->kck[1] + mtcptr->pulse_c[8] 
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] + mtcptr->pulse_c[0];
   cmdpauseLJ(arrTrig_Pulse, ii,jj,kk);
+
   ii = mtcptr->trig[0] + mtcptr->bkg[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[3] + mtcptr->pulse_e[1];
   jj = mtcptr->trig[1] + mtcptr->bkg[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[3] + mtcptr->pulse_c[1];
   cmdpauseLJ(arrTrig_BKG_Pulse, ii,jj,kk);
@@ -699,15 +707,12 @@ void loadArrays(){
   ii = mtcptr->pulse_e[8] + mtcptr->pulse_e[4] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
   jj = mtcptr->pulse_c[8] + mtcptr->pulse_c[4] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
   cmdLJ(arrAllOff_Pulse, ii,jj);                // turn all labjack channels off
+
   ii = mtcptr->bkg[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2];
   jj = mtcptr->bkg[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2];
   cmdLJ(arrAllOff_BKG_Pulse, ii,jj);            // turn all labjack channels off except background
 
-
-
-
-
-
+  /** Arrays for sending only control signals **/
  //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
   ii = mtcptr->mtc[0] + mtcptr->kck[0];     // move mtc with no beam  (beamOFF)
   jj = mtcptr->mtc[1] + mtcptr->kck[1];
