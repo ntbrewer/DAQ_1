@@ -1151,59 +1151,61 @@ int readConf() {
     case -1:
       mtcBreak =  findLJchanFIO(ch0);
       mtcFault =  findLJchanFIO(ch1);
+      mtcptr->lon.ms = t0;
+      mtcptr->lon = time_In_ms(mtcptr->lon);      // set sec and us values in structure
       break;
     case 1:
       mtcptr->pulse_e[0] =  findLJchanEIO(ch0);                                  // beam ON in eio
       mtcptr->pulse_c[0] =  findLJchanCIO(ch0);           // beam ON in cio
       mtcptr->pulse_e[1] =  findLJchanEIO(ch1);                                  // beam ON in eio
       mtcptr->pulse_c[1] =  findLJchanCIO(ch1);           // beam ON in cio
-      mtcptr->bon.ms = t0;
-      mtcptr->bon = time_In_ms(mtcptr->bon);     // set sec and us values in structure
+      mtcptr->tdt.ms = t0;
+      mtcptr->tdt = time_In_ms(mtcptr->tdt);     // set sec and us values in structure
       break;
      case 2:
       mtcptr->pulse_e[2] =  findLJchanEIO(ch0);           // beam OFF values
       mtcptr->pulse_c[2] =  findLJchanCIO(ch0);           // beam ON in cio
       mtcptr->pulse_e[3] =  findLJchanEIO(ch1);
       mtcptr->pulse_c[3] =  findLJchanCIO(ch1);           // beam ON in cio
-      mtcptr->boff.ms = t0;                      // load ms times into structure
-      mtcptr->boff = time_In_ms(mtcptr->boff);   // set sec and us values in structure
       break;
     case 3:
-      mtcptr->kck[0] =  findLJchanEIO(ch0);            // kicker values
-      mtcptr->pulse_e[4] =  findLJchanEIO(ch1);           // beam ON in cio
-      mtcptr->kck[1] =  findLJchanCIO(ch0);            // kicker values
-      mtcptr->pulse_c[4] =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->pulse_e[4] =  findLJchanEIO(ch0);           // beam ON in cio
+      mtcptr->pulse_c[4] =  findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->pulse_e[5] =  findLJchanEIO(ch1);           // beam ON in cio
+      mtcptr->pulse_c[5] =  findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 4:
-      mtcptr->mtc[0] =  findLJchanEIO(ch0);            // MTC move values
-      mtcptr->pulse_e[5] =  findLJchanEIO(ch1);           // beam ON in cio
-      mtcptr->mtc[1] =  findLJchanCIO(ch0);
-      mtcptr->pulse_c[5] =  findLJchanCIO(ch1);           // beam ON in cio
-      mtcptr->tmove.ms = t0;
-      mtcptr->tmove= time_In_ms(mtcptr->tmove);  // set sec and us values in structure
-      break;
-    case 5:
       mtcptr->pulse_e[6] =  findLJchanEIO(ch0);            // trig channel
       mtcptr->pulse_c[6] =  findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->pulse_e[7] =  findLJchanEIO(ch1);             // bkg channel
+      mtcptr->pulse_c[7] =  findLJchanCIO(ch1);           // beam ON in cio
+      break;
+    case 5:
+      mtcptr->pulse_e[8] =  findLJchanEIO(ch1);           // laser lite values
+      mtcptr->pulse_c[8] =  findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->trig[0]  =  findLJchanEIO(ch1);            // trig channel
       mtcptr->trig[1]  =  findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 6:
-      mtcptr->pulse_e[7] =  findLJchanEIO(ch0);             // bkg channel
-      mtcptr->pulse_c[7] =  findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->kck[0] =  findLJchanEIO(ch0);            // kicker values
+      mtcptr->kck[1] =  findLJchanCIO(ch0);            // kicker values
       mtcptr->bkg[0] =  findLJchanEIO(ch1);             // bkg channel
       mtcptr->bkg[1] =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->bon.ms = t0;                      // load ms times into structure
+      mtcptr->bon = time_In_ms(mtcptr->bon);   // set sec and us values in structure
       break;
      case 7:
-      mtcptr->pulse_e[8] =  findLJchanEIO(ch1);           // laser lite values
-      mtcptr->pulse_c[8] =  findLJchanCIO(ch1);           // beam ON in cio
-      mtcptr->lite[0] =  findLJchanEIO(ch0);
-      mtcptr->lite[1] =  findLJchanCIO(ch0);           // beam ON in cio
-      mtcptr->lon.ms = t0;
-      mtcptr->lon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
+      mtcptr->mtc[0] =  findLJchanEIO(ch0);            // MTC move values
+      mtcptr->mtc[1] =  findLJchanCIO(ch0);
+      mtcptr->lite[0] =  findLJchanEIO(ch1);
+      mtcptr->lite[1] =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->boff.ms = t0;                      // load ms times into structure
+      mtcptr->boff = time_In_ms(mtcptr->boff);   // set sec and us values in structure
       break;
     case 8:                                     // timer-counter start for controlling laser pulses
-      tcStart =  findLJchanFIO(ch0);
+      tcStart =  findLJchanFIO(ch0);            //missing fio6?
+      mtcptr->tmove.ms = t0;
+      mtcptr->tmove= time_In_ms(mtcptr->tmove);  // set sec and us values in structure
      default:
       break;
     }
