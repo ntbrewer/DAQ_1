@@ -4,7 +4,7 @@
 #include "../../include/labjackusb.h"
 #include "../../include/kick-u3.h"
 
-#define FILEPATH "../data/mtc.bin"
+//#define FILEPATH "../data/mtc.bin"
 
 int mmapSetup();          // setup memory map files
 
@@ -104,6 +104,7 @@ int endwait=1;          // used in timer loop (begin and end that's why its glob
 /*********************************************************************************/
 /*********************************************************************************/
 int main(int argc, char **argv){
+//  printf("before mmap");
   int mapKick=0;
   pid_t pid=0;
   time_t curtime;
@@ -118,6 +119,7 @@ int main(int argc, char **argv){
   Shared memory creation and attachment
   the segment number is stored in mtcptr->pid
 */
+
   mapKick = mmapSetup();
   if (mapKick == -1) {
     printf(" Error on setting up memory map ... exiting \n");
@@ -216,36 +218,48 @@ int main(int argc, char **argv){
 	  else 	  printf(" interupted cycle! (bkg option) \n");
 	}
       }
+      writeLJ(mtcptr->ljh, arrBeamOff_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrBeamOff, 14);     // cycle is stopped or interrupted: stop beam
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 2:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 10;                     // report status for gtk monitor program
+      writeLJ(mtcptr->ljh, arrBeamOff_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrBeamOff, 14);     // kick beam
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 3:
       mtcptr->onoff = 0;                        // beam on
       mtcptr->gtkstat = 11;                     // report status for gtk monitor program
+      writeLJ(mtcptr->ljh, arrAllOff_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrAllOff, 14);      // all LJ channels off
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 4:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 13;                     // report status for gtk monitor program
+      writeLJ(mtcptr->ljh, arrLite_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrLite, 14);        // laser with beam off
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 5:
       mtcptr->onoff = 0;                        // beam on
       mtcptr->gtkstat = 11;                     // report status for gtk monitor program
+      writeLJ(mtcptr->ljh, arrAllOff_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrAllOff, 14);      // all LJ channels off
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 6:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 12;                     // report status for gtk monitor program
+      writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);     
+      beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrMTC, 14);         // move tape
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
@@ -308,7 +322,7 @@ bool readMTC(long int kk){
 /*********************************************************************************/
 int modeData(){
   
-  //  printf("Trigger \n");                           // trigger on
+  //printf("Trigger \n");                           // trigger on
   if (mtcptr->trigbeam){
     writeLJ(mtcptr->ljh, arrTrigBeam_Pulse, 16);
     beginTimer(mtcptr->tdt);
@@ -451,7 +465,7 @@ int modeData(){
 /*********************************************************************************/
 int modeBackground(){
 /* --------------- Mode option begin ------------------------------ */
-  //  printf("Trigger \n"); 
+ //   printf("Trigger \n"); 
   if (mtcptr->trigbeam){                          // trigger on
     writeLJ(mtcptr->ljh, arrTrig_BKG_Pulse, 16);
     beginTimer(mtcptr->tdt);
@@ -1070,6 +1084,13 @@ int  mmapSetup() {
        exit(EXIT_FAILURE);
      }
    };
+
+   mtcptr = (struct mtc_par*) mmap(0, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   if (mtcptr == MAP_FAILED) {
+	close(fd);
+	perror("Error mmapping the file");
+	exit(EXIT_FAILURE);
+   }
 
    return (fd);
 }
