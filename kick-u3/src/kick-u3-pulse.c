@@ -260,6 +260,8 @@ int main(int argc, char **argv){
       mtcptr->gtkstat = 12;                     // report status for gtk monitor program
       writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);     
       beginTimer(mtcptr->tdt);
+      //writeLJ(mtcptr->ljh, arrAllOff, 14);
+      //beginTimer(mtcptr->tdt);
       writeLJ(mtcptr->ljh, arrMTC, 14);         // move tape
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
@@ -322,32 +324,34 @@ bool readMTC(long int kk){
 /*********************************************************************************/
 int modeData(){
   
-  //printf("Trigger \n");                           // trigger on
+                          // trigger on
   if (mtcptr->trigbeam){
+ printf("Trigger \n");  
     writeLJ(mtcptr->ljh, arrTrigBeam_Pulse, 16);
     beginTimer(mtcptr->tdt);
-//?    writeLJ(mtcptr->ljh, arrTrigBeam, 16);
+    writeLJ(mtcptr->ljh, arrTrigBeam, 16);
+
   }
   else {
     writeLJ(mtcptr->ljh, arrTrig_Pulse, 16);
     beginTimer(mtcptr->tdt);
-//?    writeLJ(mtcptr->ljh, arrTrig, 16);
+    writeLJ(mtcptr->ljh, arrTrig, 16);
   }
 
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
   mtcptr->gtkstat = 1;                        // report status for gtk monitor program
-  //  printf("Beam on \n"); 
+  printf("Beam on \n"); 
   if (mtcptr->beammeas){                          // beam on
     writeLJ(mtcptr->ljh, arrBeamOnMeas_Pulse, 14);
     beginTimer(mtcptr->tdt);
-  //  printf ("beam on meas %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
+    printf ("beam on meas %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
     writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
     beginTimerDiff(mtcptr->bon , mtcptr->tdt);
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOn_Pulse, 14);
     beginTimer(mtcptr->tdt);
-   // printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
+    printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
     writeLJ(mtcptr->ljh, arrBeamOn, 14);
     beginTimerDiff(mtcptr->bon , mtcptr->tdt);
   }
@@ -355,7 +359,7 @@ int modeData(){
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
 /* --------------- Mode option begin ------------------------------ */
   if(mtcptr->pause){                        // Pause option: stop beam, wait w/out meas, mtc on
-    //    printf("Pause on\n");     
+    printf("Pause on\n");     
     mtcptr->gtkstat = 2;                        // report status for gtk monitor program
     writeLJ(mtcptr->ljh, arrBeamOff_Pulse, 14);
     beginTimer(mtcptr->tdt);
@@ -374,7 +378,7 @@ int modeData(){
 
 /* --------------- Mode option begin ------------------------------ */
   if (mtcptr->normal){                     // mtc on for normal mode; skip it for takeaway
-    //    printf("MTC on for normal \n"); 
+    printf("MTC on for normal \n"); 
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
     writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
     beginTimer(mtcptr->tdt);
@@ -387,7 +391,7 @@ int modeData(){
 /* --------------- Mode option end ------------------------------ */
   
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
-//  printf("Measure  \n"); 
+  printf("Measure  \n"); 
   mtcptr->gtkstat = 5;                        // report status for gtk monitor program
   if (mtcptr->measbeam){                         // measure with beam on or off
     writeLJ(mtcptr->ljh, arrBeamOnMeas_Pulse, 14);
@@ -428,7 +432,7 @@ int modeData(){
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
 
 /* --------------- Mode option begin ------------------------------ */
-//  printf("MTC on\n");           
+  printf("MTC on\n");           
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
   writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
   beginTimer(mtcptr->tdt);
@@ -697,9 +701,9 @@ void loadArrays(){
        + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];   // trigger cycle (beam ON)
   jj = mtcptr->trig[1] + mtcptr->beam[1] + mtcptr->pulse_c[8] 
        + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  if (mtcptr->trigDT < 16) mtcptr->trigDT=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
-  else if (mtcptr->trigDT > 4080)mtcptr->trigDT=4080;
-  kk = (uint8) (mtcptr->trigDT/16);
+  if (mtcptr->tdt.us < 16) mtcptr->tdt.us=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
+  else if (mtcptr->tdt.us > 4080)mtcptr->tdt.us=4080;
+  kk = (uint8) (mtcptr->tdt.us/16);
   cmdpauseLJ(arrTrigBeam_Pulse, ii,jj,kk);
 
   ii = mtcptr->trig[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
@@ -783,9 +787,9 @@ void loadArrays(){
 
   ii = mtcptr->trig[0] + mtcptr->beam[0];   // trigger cycle (beam ON)
   jj = mtcptr->trig[1] + mtcptr->beam[1];
-  if (mtcptr->trigDT < 16) mtcptr->trigDT=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
-  else if (mtcptr->trigDT > 4080)mtcptr->trigDT=4080;
-  kk = (uint8) (mtcptr->trigDT/16);
+  if (mtcptr->tdt.us < 16) mtcptr->tdt.us=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
+  else if (mtcptr->tdt.us > 4080)mtcptr->tdt.us=4080;
+  kk = (uint8) (mtcptr->tdt.us/16);
   cmdpauseLJ(arrTrigBeam, ii,jj,kk);
   ii += mtcptr->bkg[0] + mtcptr->kck[0];
   jj += mtcptr->bkg[1] + mtcptr->kck[1];
@@ -942,7 +946,7 @@ void beginTimer(struct sec_us xx){
 */
   endwait=1;
   nt.tv_sec=0;
-  nt.tv_nsec=1000000;    // sleep and Kwake up and check if any thing has changed every 1 ms
+  nt.tv_nsec=10000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
     nanosleep(&nt,0);
     if (mtcptr->onoff==0) {     // stop timer if set to zero
@@ -961,8 +965,12 @@ void beginTimerDiff(struct sec_us xx, struct sec_us yy){
   
   tt.it_interval.tv_sec = 0;
   tt.it_interval.tv_usec = 0;
-  tt.it_value.tv_sec = xx.sec - yy.sec;          // set timer for ii seconds and jj microseconds 
-  tt.it_value.tv_usec = xx.us - yy.us;
+  struct sec_us msecDiff;
+  msecDiff.ms = (xx.ms - yy.ms);
+  msecDiff = time_In_ms(msecDiff);
+  //printf("sec: %i, usec: %i, %i,%i,%i,%i,%i,%i",msecDiff.sec,msecDiff.us,xx.sec,yy.sec,xx.ms,yy.ms,xx.us,yy.us);
+  tt.it_value.tv_sec = msecDiff.sec; //int (xx.sec - yy.sec);          // set timer for ii seconds and jj microseconds 
+  tt.it_value.tv_usec = msecDiff.us; // int (xx.us - yy.us);
 
   setitimer(ITIMER_REAL, &tt, 0);       // start timer
   signal (SIGALRM, stopTimer);          // function that handles the alarm
@@ -973,7 +981,7 @@ void beginTimerDiff(struct sec_us xx, struct sec_us yy){
 */
   endwait=1;
   nt.tv_sec=0;
-  nt.tv_nsec=1000000;    // sleep and Kwake up and check if any thing has changed every 1 ms
+  nt.tv_nsec=10000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
     nanosleep(&nt,0);
     if (mtcptr->onoff==0) {     // stop timer if set to zero
@@ -1181,6 +1189,7 @@ int readConf() {
       mtcptr->pulse_e[1] =  findLJchanEIO(ch1);                                  // beam ON in eio
       mtcptr->pulse_c[1] =  findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->tdt.ms = t0;
+      mtcptr->trigDT = t0;
       mtcptr->tdt = time_In_ms(mtcptr->tdt);     // set sec and us values in structure
       break;
      case 2:
@@ -1202,10 +1211,12 @@ int readConf() {
       mtcptr->pulse_c[7] =  findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 5:
-      mtcptr->pulse_e[8] =  findLJchanEIO(ch1);           // laser lite values
-      mtcptr->pulse_c[8] =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->pulse_e[8] =  findLJchanEIO(ch0);           // laser lite values
+      mtcptr->pulse_c[8] =  findLJchanCIO(ch0);           // beam ON in cio
       mtcptr->trig[0]  =  findLJchanEIO(ch1);            // trig channel
       mtcptr->trig[1]  =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->beam[0]  =  findLJchanEIO(ch1);            // trig channel
+      mtcptr->beam[1]  =  findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 6:
       mtcptr->kck[0] =  findLJchanEIO(ch0);            // kicker values
@@ -1236,7 +1247,7 @@ int readConf() {
   Setup pause times and labjack
 */
   mtcptr->pon.ms = 0;                        // set default pause values to 0
-  mtcptr->pon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
+  mtcptr->pon= time_In_ms(mtcptr->pon);      // set sec and us values in structure
 
   jj=0;
   mtcptr->lj = lj;
@@ -1258,7 +1269,7 @@ uint8  findLJchanEIO(char *aaa){
   if (strstr(aaa,"eio5\0") != NULL) ii = 0x20;
   if (strstr(aaa,"eio6\0") != NULL) ii = 0x40;
   if (strstr(aaa,"eio7\0") != NULL) ii = 0x80;
-  //  printf ("lj eio chan = %x\n",ii);
+  //printf ("lj eio chan = %x\n",ii);
   return (ii);
 }
 /*********************************************************************************/
@@ -1270,7 +1281,7 @@ uint8  findLJchanCIO(char *aaa){
   if (strstr(aaa,"cio2\0") != NULL) ii = 0x04;
   if (strstr(aaa,"cio3\0") != NULL) ii = 0x08;
 
-  //  printf ("lj cio chan = %x\n",ii);
+  //printf ("lj cio chan = %x\n",ii);
   return (ii);
 }
 
