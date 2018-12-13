@@ -619,13 +619,14 @@ void loadArrays(){
   jj = mtcptr->mtc[1] + mtcptr->kck[1] 
        + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[0]; //mtcptr->mtc[1] + mtcptr->kck[1];
   cmdLJ(arrMTC_Pulse,ii,jj);
-
+  
+ 
   ii = mtcptr->mtc[0] + mtcptr->kck[0] + mtcptr->bkg[0] 
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[5] + mtcptr->pulse_e[1];
   jj = mtcptr->mtc[1] + mtcptr->kck[1] + mtcptr->bkg[1] 
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[5] + mtcptr->pulse_c[1]; //+= mtcptr->bkg[1];
   cmdLJ(arrMTC_BKG_Pulse,ii,jj);
-  
+
   ii = mtcptr->beam[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6]
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[4];  // beam ON
   jj = mtcptr->beam[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] 
@@ -836,6 +837,7 @@ void cmdLJ(uint8 *c, uint8 jj, uint8 kk){
   
   extendedChecksum(c,14);  // checksum load array elements 0, 4, and 5
 
+printf("arr is: %i, %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n" , c[0], c[1], c[2], c[3], c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13]);
   return;
 }
 
@@ -1217,6 +1219,8 @@ int readConf() {
       mtcptr->trig[1]  =  findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->beam[0]  =  findLJchanEIO(ch1);            // trig channel
       mtcptr->beam[1]  =  findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->meas[0]  =  findLJchanEIO(ch1);            // trig channel
+      mtcptr->meas[1]  =  findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 6:
       mtcptr->kck[0] =  findLJchanEIO(ch0);            // kicker values
