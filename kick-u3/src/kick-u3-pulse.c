@@ -837,7 +837,6 @@ void cmdLJ(uint8 *c, uint8 jj, uint8 kk){
   
   extendedChecksum(c,14);  // checksum load array elements 0, 4, and 5
 
-printf("arr is: %i, %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n" , c[0], c[1], c[2], c[3], c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13]);
   return;
 }
 
@@ -865,6 +864,9 @@ void cmdpauseLJ(uint8 *c, uint8 jj, uint8 kk, uint8 mm){
   c[ii++]=mm;              // 15 - number * 16 us
 
   extendedChecksum(c,16);  // checksum load array elements 0, 4, and 5
+
+  /*printf("arr is: %i, %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n" , c[0], c[1], c[2], c[3], 
+            c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15]);*/
 
   return;
 }
