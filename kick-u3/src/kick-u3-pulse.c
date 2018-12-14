@@ -242,8 +242,11 @@ int main(int argc, char **argv){
     case 4:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 13;                     // report status for gtk monitor program
-      writeLJ(mtcptr->ljh, arrLite_Pulse, 14);     
+      writeLJ(mtcptr->ljh, arrLite_Pulse, 14);  
+      mtcptr->tdt.sec=20;   
       beginTimer(mtcptr->tdt);
+      //printf("%i %i %i\n",mtcptr->tdt.ms, mtcptr->tdt.sec, mtcptr->tdt.us);
+      //usleep(500000);
       writeLJ(mtcptr->ljh, arrLite, 14);        // laser with beam off
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
@@ -702,26 +705,26 @@ void loadArrays(){
        + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];   // trigger cycle (beam ON)
   jj = mtcptr->trig[1] + mtcptr->beam[1] + mtcptr->pulse_c[8] 
        + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  if (mtcptr->tdt.us < 16) mtcptr->tdt.us=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
+  /*if (mtcptr->tdt.us < 16) mtcptr->tdt.us=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
   else if (mtcptr->tdt.us > 4080)mtcptr->tdt.us=4080;
-  kk = (uint8) (mtcptr->tdt.us/16);
-  cmdpauseLJ(arrTrigBeam_Pulse, ii,jj,kk);
+  kk = (uint8) (mtcptr->tdt.us/16);*/
+  cmdLJ(arrTrigBeam_Pulse, ii,jj);
 
   ii = mtcptr->trig[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3];
   jj = mtcptr->trig[1] + mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[5] + mtcptr->pulse_c[3];
-  cmdpauseLJ(arrTrigBeam_BKG_Pulse, ii,jj,kk);
+  cmdLJ(arrTrigBeam_BKG_Pulse, ii,jj);
 
   ii = mtcptr->trig[0] + mtcptr->kck[0] + mtcptr->pulse_e[8] 
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[3] + mtcptr->pulse_e[0];   // trigger cycle (beam OFF)
   jj = mtcptr->trig[1] + mtcptr->kck[1] + mtcptr->pulse_c[8] 
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] + mtcptr->pulse_c[0];
-  cmdpauseLJ(arrTrig_Pulse, ii,jj,kk);
+  cmdLJ(arrTrig_Pulse, ii,jj);
 
   ii = mtcptr->trig[0] + mtcptr->bkg[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[3] + mtcptr->pulse_e[1];
   jj = mtcptr->trig[1] + mtcptr->bkg[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[3] + mtcptr->pulse_c[1];
-  cmdpauseLJ(arrTrig_BKG_Pulse, ii,jj,kk);
+  cmdLJ(arrTrig_BKG_Pulse, ii,jj);
 
   ii = mtcptr->pulse_e[8] + mtcptr->pulse_e[4] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
   jj = mtcptr->pulse_c[8] + mtcptr->pulse_c[4] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
@@ -735,6 +738,7 @@ void loadArrays(){
  //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
   ii = mtcptr->mtc[0] + mtcptr->kck[0];     // move mtc with no beam  (beamOFF)
   jj = mtcptr->mtc[1] + mtcptr->kck[1];
+  printf("%i,%i,%i,%i \n",mtcptr->mtc[0],mtcptr->mtc[1],mtcptr->kck[0],mtcptr->kck[1]);
   cmdLJ(arrMTC,ii,jj);
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
@@ -933,7 +937,7 @@ struct sec_us time_In_ms (struct sec_us xx) {
 }
 		   
 /*********************************************************************************/
-void beginTimer(struct sec_us xx){
+/*void beginTimer(struct sec_us xx){
   struct timespec nt;
   
   tt.it_interval.tv_sec = 0;
@@ -948,9 +952,9 @@ void beginTimer(struct sec_us xx){
    Set a never ending loop that contains nanosleep to sleep in 1 ms intervals
    When the timer ends, stopTimer changes endwait to 0 which ends the loop
 */
-  endwait=1;
+ /* endwait=1;
   nt.tv_sec=0;
-  nt.tv_nsec=10000;    // sleep and wake up and check if any thing has changed every 1 ms
+  nt.tv_nsec=1000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
     nanosleep(&nt,0);
     if (mtcptr->onoff==0) {     // stop timer if set to zero
@@ -961,10 +965,23 @@ void beginTimer(struct sec_us xx){
   }
 
   return;
-}
+}*/
 
 /*********************************************************************************/
+void beginTimer(struct sec_us xx){
+  //for trouble shooting code fixed time witdh sections
+  usleep(500000);
+
+  return;
+}
+/*********************************************************************************/
 void beginTimerDiff(struct sec_us xx, struct sec_us yy){
+  usleep(xx.ms*1000);
+
+  return;
+}
+/*********************************************************************************/
+/*void beginTimerDiff(struct sec_us xx, struct sec_us yy){
   struct timespec nt;
   
   tt.it_interval.tv_sec = 0;
@@ -983,9 +1000,9 @@ void beginTimerDiff(struct sec_us xx, struct sec_us yy){
    Set a never ending loop that contains nanosleep to sleep in 1 ms intervals
    When the timer ends, stopTimer changes endwait to 0 which ends the loop
 */
-  endwait=1;
+/*  endwait=1;
   nt.tv_sec=0;
-  nt.tv_nsec=10000;    // sleep and wake up and check if any thing has changed every 1 ms
+  nt.tv_nsec=1000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
     nanosleep(&nt,0);
     if (mtcptr->onoff==0) {     // stop timer if set to zero
@@ -996,7 +1013,7 @@ void beginTimerDiff(struct sec_us xx, struct sec_us yy){
   }
 
   return;
-}
+}*/
 
 /*********************************************************************************/
 void stopTimer(){
