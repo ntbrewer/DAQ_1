@@ -16,6 +16,9 @@ void cmdwaitLJ(uint8 *c, uint8 jj, uint8 kk, uint8 mm);      // wait for mm*16 m
 int readConf();
 uint8 findLJchan0(char *aaa);     // used by readConf
 uint8 findLJchan1(char *aaa);     // used by readConf
+uint8  findLJchanEIO(char *aaa);     // used by readConf
+uint8  findLJchanCIO(char *aaa);     // used by readConf
+long int  findLJchanFIO(char *aaa);  // used by readConf to identify digital input from the MTC
 void loadArrays();                // creates the entries in the uint8 arrays below
 int modeData();                   // data cycle (all mode options included)
 int modeBackground();             // background cycle (all mode options included)
@@ -1024,61 +1027,61 @@ int readConf() {
     mtcptr->lj = lj;
     switch (ii) {
           case -1:
-      mtcBreak =  findLJchan2(ch0);
-      mtcFault = findLJchan2(ch1);
+      mtcBreak =  findLJchanFIO(ch0);
+      mtcFault = findLJchanFIO(ch1);
       break;
     case 1:
-      mtcptr->beam[0] = findLJchan0(ch0);                                  // beam ON in eio
-      mtcptr->beam[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->beam[0] += findLJchan0(ch1);                                  // beam ON in eio
-      mtcptr->beam[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->meas[0] = findLJchanEIO(ch0);           // beam OFF values
+      mtcptr->meas[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->meas[2] = findLJchanEIO(ch1);
+      mtcptr->meas[3] = findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->bon.ms = t0;
       mtcptr->bon = time_In_ms(mtcptr->bon);     // set sec and us values in structure
       break;
      case 2:
-      mtcptr->meas[0] = findLJchan0(ch0);           // beam OFF values
-      mtcptr->meas[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->meas[0] += findLJchan0(ch1);
-      mtcptr->meas[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->bkg[0] = findLJchanEIO(ch0);             // bkg channel
+      mtcptr->bkg[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->bkg[0] += findLJchanEIO(ch1);             // bkg channel
+      mtcptr->bkg[1] += findLJchanCIO(ch1);           // beam ON in cio
+      break;
+    case 3:
+      mtcptr->kck[0] = findLJchanEIO(ch0);            // kicker values
+      mtcptr->kck[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->kck[0] += findLJchanEIO(ch1);            // kicker values
+      mtcptr->kck[1] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->boff.ms = t0;                      // load ms times into structure
       mtcptr->boff = time_In_ms(mtcptr->boff);   // set sec and us values in structure
       break;
-    case 3:
-      mtcptr->kck[0] = findLJchan0(ch0);            // kicker values
-      mtcptr->kck[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->kck[0] += findLJchan0(ch1);            // kicker values
-      mtcptr->kck[1] += findLJchan1(ch1);           // beam ON in cio
-      break;
     case 4:
-      mtcptr->mtc[0] = findLJchan0(ch0);            // MTC move values
-      mtcptr->mtc[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->mtc[0] += findLJchan0(ch1);
-      mtcptr->mtc[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->mtc[0] = findLJchanEIO(ch0);            // MTC move values
+      mtcptr->mtc[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->mtc[0] += findLJchanEIO(ch1);
+      mtcptr->mtc[1] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->tmove.ms = t0;
       mtcptr->tmove= time_In_ms(mtcptr->tmove);  // set sec and us values in structure
       break;
     case 5:
-      mtcptr->trig[0] = findLJchan0(ch0);            // trig channel
-      mtcptr->trig[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->trig[0] += findLJchan0(ch1);            // trig channel
-      mtcptr->trig[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->trig[0] = findLJchanEIO(ch0);            // trig channel
+      mtcptr->trig[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->trig[0] += findLJchanEIO(ch1);            // trig channel
+      mtcptr->trig[1] += findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 6:
-      mtcptr->bkg[0] = findLJchan0(ch0);             // bkg channel
-      mtcptr->bkg[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->bkg[0] += findLJchan0(ch1);             // bkg channel
-      mtcptr->bkg[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->beam[0] = findLJchanEIO(ch0);                                  // beam ON in eio
+      mtcptr->beam[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->beam[0] += findLJchanEIO(ch1);                                  // beam ON in eio
+      mtcptr->beam[1] += findLJchanCIO(ch1);           // beam ON in cio
       break;
      case 7:
-      mtcptr->lite[0] = findLJchan0(ch0);           // laser lite values
-      mtcptr->lite[1] = findLJchan1(ch0);           // beam ON in cio
-      mtcptr->lite[0] += findLJchan0(ch1);
-      mtcptr->lite[1] += findLJchan1(ch1);           // beam ON in cio
+      mtcptr->lite[0] = findLJchanEIO(ch0);           // laser lite values
+      mtcptr->lite[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->lite[0] += findLJchanEIO(ch1);
+      mtcptr->lite[1] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->lon.ms = t0;
       mtcptr->lon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
       break;
     case 8:                                     // timer-counter start for controlling laser pulses
-      tcStart = findLJchan2(ch0);
+      tcStart = findLJchanFIO(ch0);
      default:
       break;
     }
@@ -1128,6 +1131,50 @@ uint8 findLJchan1(char *aaa){
 
 /*********************************************************************************/
 long int findLJchan2(char *aaa){                   // used to id digital i/o signals
+  long int ii;
+  ii=0;                        // set = 0 as default and in case its a eio channel
+  if (strstr(aaa,"fio0\0") != NULL) ii = 0;
+  if (strstr(aaa,"fio1\0") != NULL) ii = 1;
+  if (strstr(aaa,"fio2\0") != NULL) ii = 2;
+  if (strstr(aaa,"fio3\0") != NULL) ii = 3;
+  if (strstr(aaa,"fio4\0") != NULL) ii = 4;
+  if (strstr(aaa,"fio5\0") != NULL) ii = 5;
+  if (strstr(aaa,"fio6\0") != NULL) ii = 6;
+  if (strstr(aaa,"fio7\0") != NULL) ii = 7;
+
+  //  printf ("lj cio chan = %x\n",ii);
+  return (ii);
+}
+/*********************************************************************************/
+uint8  findLJchanEIO(char *aaa){
+  uint8 ii;
+  ii=0;                           // set = 0 as default and in case its a cio channel
+  if (strcmp(aaa,"eio0\0") == 0) ii = 0x01;
+  if (strstr(aaa,"eio1\0") != NULL) ii = 0x02;
+  if (strstr(aaa,"eio2\0") != NULL) ii = 0x04;
+  if (strstr(aaa,"eio3\0") != NULL) ii = 0x08;
+  if (strstr(aaa,"eio4\0") != NULL) ii = 0x10;
+  if (strstr(aaa,"eio5\0") != NULL) ii = 0x20;
+  if (strstr(aaa,"eio6\0") != NULL) ii = 0x40;
+  if (strstr(aaa,"eio7\0") != NULL) ii = 0x80;
+  //printf ("lj eio chan = %x\n",ii);
+  return (ii);
+}
+/*********************************************************************************/
+uint8  findLJchanCIO(char *aaa){
+  uint8 ii;
+  ii=0;                        // set = 0 as default and in case its a eio channel
+  if (strstr(aaa,"cio0\0") != NULL) ii = 0x01;
+  if (strstr(aaa,"cio1\0") != NULL) ii = 0x02;
+  if (strstr(aaa,"cio2\0") != NULL) ii = 0x04;
+  if (strstr(aaa,"cio3\0") != NULL) ii = 0x08;
+
+  //printf ("lj cio chan = %x\n",ii);
+  return (ii);
+}
+
+/*********************************************************************************/
+long int  findLJchanFIO(char *aaa){                   // used to id digital i/o signals
   long int ii;
   ii=0;                        // set = 0 as default and in case its a eio channel
   if (strstr(aaa,"fio0\0") != NULL) ii = 0;
