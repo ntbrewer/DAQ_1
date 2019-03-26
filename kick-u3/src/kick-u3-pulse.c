@@ -331,14 +331,14 @@ int modeData(){
   if (mtcptr->trigbeam){
  printf("Trigger \n");  
     writeLJ(mtcptr->ljh, arrTrigBeam_Pulse, 16);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrTrigBeam, 16);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrTrigBeam, 16);
 
   }
   else {
     writeLJ(mtcptr->ljh, arrTrig_Pulse, 16);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrTrig, 16);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrTrig, 16);
   }
 
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -346,17 +346,19 @@ int modeData(){
   printf("Beam on \n"); 
   if (mtcptr->beammeas){                          // beam on
     writeLJ(mtcptr->ljh, arrBeamOnMeas_Pulse, 14);
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
     printf ("beam on meas %i, %i \n",arrBeamOnMeas[12], arrBeamOnMeas[13]); 
-    writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
+    //beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+    beginTimer(mtcptr->bon);
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOn_Pulse, 14);
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
     printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
-    writeLJ(mtcptr->ljh, arrBeamOn, 14);
-    beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOn, 14);
+    //beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+    beginTimer(mtcptr->bon);
   }
 
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -365,14 +367,18 @@ int modeData(){
     printf("Pause on\n");     
     mtcptr->gtkstat = 2;                        // report status for gtk monitor program
     writeLJ(mtcptr->ljh, arrBeamOff_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff, 14);
-    beginTimerDiff(mtcptr->pon, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14);
+    //beginTimerDiff(mtcptr->pon, mtcptr->tdt);
+    beginTimer(mtcptr->pon);
 
     writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC, 14);
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC, 14);
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    
+    beginTimer(mtcptr->tmove);
+
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
   }
@@ -384,9 +390,12 @@ int modeData(){
     printf("MTC on for normal \n"); 
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
     writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC, 14);
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC, 14);
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+
+    beginTimer(mtcptr->tmove);
+
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
    printf ("normal tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
@@ -398,15 +407,17 @@ int modeData(){
   mtcptr->gtkstat = 5;                        // report status for gtk monitor program
   if (mtcptr->measbeam){                         // measure with beam on or off
     writeLJ(mtcptr->ljh, arrBeamOnMeas_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
-    beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOnMeas, 14);
+    //beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    beginTimer(mtcptr->boff);
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOffMeas_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
-    beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOffMeas, 14);
+    //beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    beginTimer(mtcptr->boff);
     printf ("beam off while measuring %i, %i \n",arrBeamOffMeas[12], arrBeamOffMeas[13]); 
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -416,19 +427,24 @@ int modeData(){
     mtcptr->gtkstat = 6;                        // report status for gtk monitor program
     if (mtcptr->laserbeam) {                        // laser with beam on or off AFTER MEASURING
       writeLJ(mtcptr->ljh, arrLiteBeam_Pulse, 14);
-      beginTimer(mtcptr->tdt);
-      writeLJ(mtcptr->ljh, arrLiteBeam, 14);
+      //beginTimer(mtcptr->tdt);
+      //writeLJ(mtcptr->ljh, arrLiteBeam, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
-      beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      //pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms));        // issue a
+      beginTimer(mtcptr->lon);
     }
     else {
       writeLJ(mtcptr->ljh, arrLite_Pulse, 14);
-      beginTimer(mtcptr->tdt);
-      writeLJ(mtcptr->ljh, arrLite, 14);
+      //beginTimer(mtcptr->tdt);
+      //writeLJ(mtcptr->ljh, arrLite, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
-      beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      //pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms));        // issue a
+      beginTimer(mtcptr->lon);
     }
    printf ("lasering %i, %i \n",arrLite[12], arrLite[13]); 
   }
@@ -438,9 +454,12 @@ int modeData(){
   printf("MTC on\n");           
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
   writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
-  beginTimer(mtcptr->tdt);
-  writeLJ(mtcptr->ljh, arrMTC, 14);               // mtc on = only tape movement in takeaway, common in all modes;
-  beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+  //beginTimer(mtcptr->tdt);
+  //writeLJ(mtcptr->ljh, arrMTC, 14);               // mtc on = only tape movement in takeaway, common in all modes;
+  //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+
+  beginTimer(mtcptr->tmove);
+
   printf ("first  tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
   mtcptr->tapeFault = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
@@ -450,14 +469,15 @@ int modeData(){
     //    writeLJ(mtcptr->ljh, arrAllOff, 14);
   
     writeLJ(mtcptr->ljh, arrBeamOff_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff, 14);
-    usleep(10000);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOff, 14);
+    usleep(1000);
 
     writeLJ(mtcptr->ljh, arrMTC_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC, 14);               // mtc on = only tape movement in takeaway, common in all modes;
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC, 14);               // mtc on = only tape movement in takeaway, common in all modes;
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    beginTimer(mtcptr->tmove);
 
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
@@ -475,12 +495,12 @@ int modeBackground(){
  //   printf("Trigger \n"); 
   if (mtcptr->trigbeam){                          // trigger on
     writeLJ(mtcptr->ljh, arrTrig_BKG_Pulse, 16);
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
 //?    writeLJ(mtcptr->ljh, arrTrig_BKG, 16);
   }
   else {
     writeLJ(mtcptr->ljh, arrTrigBeam_BKG_Pulse, 16);
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
 //?    writeLJ(mtcptr->ljh, arrTrigBeam_BKG, 16);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -489,16 +509,18 @@ int modeBackground(){
 /* --------------- Mode option begin ------------------------------ */
   if (mtcptr->beammeas){                           // beam on ... measure or not
     writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG, 14);
-    beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+   // beginTimer(mtcptr->tdt);
+   // writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG, 14);
+   // beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+      beginTimer(mtcptr->bon); 
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOn_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
    // printf ("beam on no measure %i, %i \n",arrBeamOn[12], arrBeamOn[13]); 
-    writeLJ(mtcptr->ljh, arrBeamOn_BKG, 14);
-    beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOn_BKG, 14);
+    //beginTimerDiff(mtcptr->bon , mtcptr->tdt);
+      beginTimer(mtcptr->bon);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
 
@@ -508,14 +530,18 @@ int modeBackground(){
     mtcptr->gtkstat = 2;                        // report status for gtk monitor program
 
     writeLJ(mtcptr->ljh, arrBeamOff_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff_BKG, 14);
-    beginTimerDiff(mtcptr->pon, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOff_BKG, 14);
+    //beginTimerDiff(mtcptr->pon, mtcptr->tdt);
+
+    beginTimer(mtcptr->pon);
 
     writeLJ(mtcptr->ljh, arrMTC_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+
+    beginTimer(mtcptr->tmove);
 
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
@@ -530,9 +556,10 @@ int modeBackground(){
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
  
     writeLJ(mtcptr->ljh, arrMTC_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+      beginTimer(mtcptr->tmove);
 
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
@@ -544,15 +571,17 @@ int modeBackground(){
     mtcptr->gtkstat = 5;                        // report status for gtk monitor program
   if (mtcptr->measbeam){                        // measure with beam on or off
     writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG, 14);
-    beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOnMeas_BKG, 14);
+    //beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    beginTimer(mtcptr->boff);
   }
   else {
     writeLJ(mtcptr->ljh, arrBeamOffMeas_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOffMeas_BKG, 14);
-    beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOffMeas_BKG, 14);
+    //beginTimerDiff(mtcptr->boff, mtcptr->tdt);
+    beginTimer(mtcptr->boff);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
 
@@ -562,19 +591,23 @@ int modeBackground(){
   if (mtcptr->lon.ms > 0) {
     if (mtcptr->laserbeam) {                        // laser with beam on or off
       writeLJ(mtcptr->ljh, arrLiteBeam_BKG_Pulse, 14);
-      beginTimer(mtcptr->tdt);
-      writeLJ(mtcptr->ljh, arrLiteBeam_BKG, 14);
+      //beginTimer(mtcptr->tdt);
+      //writeLJ(mtcptr->ljh, arrLiteBeam_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser ?? Needs lon.ms-tdt.ms ??
-      beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      //pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser ?? Needs lon.ms-tdt.ms ??
+      //beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms));
+      beginTimer(mtcptr->lon);
     }
     else {
       writeLJ(mtcptr->ljh, arrLite_BKG_Pulse, 14);
-      beginTimer(mtcptr->tdt);
-      writeLJ(mtcptr->ljh, arrLite_BKG, 14);
+      //beginTimer(mtcptr->tdt);
+      //writeLJ(mtcptr->ljh, arrLite_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
-      beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      //pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms - mtcptr->tdt.ms));        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //beginTimerDiff(mtcptr->lon, mtcptr->tdt);
+      pulseLaser(mtcptr->ljh, tcStart, (double) (mtcptr->lon.ms));
+      beginTimer(mtcptr->lon);
     }
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in//  printf("MTC on\n");
@@ -584,9 +617,10 @@ int modeBackground(){
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
 
   writeLJ(mtcptr->ljh, arrMTC_BKG_Pulse, 14);
-  beginTimer(mtcptr->tdt);
-  writeLJ(mtcptr->ljh, arrMTC_BKG, 14);               // mtc on = only tape movement in takeaway, common in all modes;
-  beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+  //beginTimer(mtcptr->tdt);
+  //writeLJ(mtcptr->ljh, arrMTC_BKG, 14);               // mtc on = only tape movement in takeaway, common in all modes;
+  //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+  beginTimer(mtcptr->tmove);
   mtcptr->tapeFault = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
 
@@ -594,14 +628,15 @@ int modeBackground(){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
 
     writeLJ(mtcptr->ljh, arrBeamOff_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrBeamOff_BKG, 14);
-    usleep(10000);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrBeamOff_BKG, 14);
+    usleep(1000);
 
     writeLJ(mtcptr->ljh, arrMTC_BKG_Pulse, 14);
-    beginTimer(mtcptr->tdt);
-    writeLJ(mtcptr->ljh, arrMTC_BKG, 14);               // mtc on = only tape movement in takeaway, common in all modes;
-    beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    //beginTimer(mtcptr->tdt);
+    //writeLJ(mtcptr->ljh, arrMTC_BKG, 14);               // mtc on = only tape movement in takeaway, common in all modes;
+    //beginTimerDiff(mtcptr->tmove, mtcptr->tdt);
+    beginTimer(mtcptr->tmove);
 
     mtcptr->tapeFault = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
@@ -617,45 +652,46 @@ void loadArrays(){
   /** Arrays for sending logic and control signals **/
 //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
   // move mtc with no beam  (beamOFF)
+  kk = 3;
   ii = mtcptr->mtc[0] + mtcptr->kck[0] 
        + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[0];
   jj = mtcptr->mtc[1] + mtcptr->kck[1] 
        + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[0]; //mtcptr->mtc[1] + mtcptr->kck[1];
-  cmdLJ(arrMTC_Pulse,ii,jj);
+  cmdpauseLJ(arrMTC_Pulse,ii,jj,kk);
   
  
   ii = mtcptr->mtc[0] + mtcptr->kck[0] + mtcptr->bkg[0] 
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[5] + mtcptr->pulse_e[1];
   jj = mtcptr->mtc[1] + mtcptr->kck[1] + mtcptr->bkg[1] 
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[5] + mtcptr->pulse_c[1]; //+= mtcptr->bkg[1];
-  cmdLJ(arrMTC_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrMTC_BKG_Pulse,ii,jj,kk); 
 
   ii = mtcptr->beam[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6]
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[4];  // beam ON
   jj = mtcptr->beam[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] 
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[4] ;
-  cmdLJ(arrBeamOn_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOn_Pulse,ii,jj,kk); 
 
   ii = mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[5] + mtcptr->pulse_e[4] + mtcptr->pulse_e[0];
   jj = mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[5] + mtcptr->pulse_c[4] + mtcptr->pulse_c[0];
-  cmdLJ(arrBeamOn_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOn_BKG_Pulse,ii,jj,kk); 
 
   ii = mtcptr->beam[0] + mtcptr->meas[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[4] + mtcptr->pulse_e[1];   // measuring with beam   (beam ON)
   jj = mtcptr->beam[1] + mtcptr->meas[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[4] + mtcptr->pulse_c[1];
-  cmdLJ(arrBeamOnMeas_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOnMeas_Pulse,ii,jj,kk); 
 
   ii = mtcptr->beam[0] + mtcptr->meas[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[7] + mtcptr->pulse_e[4] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
   jj = mtcptr->beam[1] + mtcptr->meas[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[7] + mtcptr->pulse_c[4] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  cmdLJ(arrBeamOnMeas_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOnMeas_BKG_Pulse,ii,jj,kk); 
 
   ii = mtcptr->meas[0] + mtcptr->kck[0] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1];    
        // measuring with no beam (beamOFF)
   jj = mtcptr->meas[1] + mtcptr->kck[1] + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1];
-  cmdLJ(arrBeamOffMeas_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOffMeas_Pulse,ii,jj,kk); 
 
   ii = mtcptr->meas[0] + mtcptr->kck[0] + mtcptr->bkg[0]
        + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3] 
@@ -663,7 +699,7 @@ void loadArrays(){
   jj = mtcptr->meas[1] + mtcptr->kck[1] + mtcptr->bkg[1]
        + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] 
        + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  cmdLJ(arrBeamOffMeas_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrBeamOffMeas_BKG_Pulse,ii,jj,kk); 
   
   ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[6] 
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];    // laser lite with measuring but no beam  (beam OFF)
@@ -671,11 +707,11 @@ void loadArrays(){
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
   //  ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->meas[0];    // laser lite with measuring but no beam  (beam OFF)
   //  jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->meas[1];
-  cmdLJ(arrLite_Pulse,ii,jj);
+  cmdpauseLJ(arrLite_Pulse,ii,jj,kk); 
 
   ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->bkg[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[2];
   jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->bkg[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[5] + mtcptr->pulse_c[2];
-  cmdLJ(arrLite_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrLite_BKG_Pulse,ii,jj,kk); 
   
   ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->pulse_e[7] 
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[2] + mtcptr->pulse_e[0];    // laser lite with measuring and with beam  (beam ON)
@@ -683,23 +719,23 @@ void loadArrays(){
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[2] + mtcptr->pulse_c[0];
   //  ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->meas[0];    // laser lite with measuring and with beam  (beam ON)
   //  jj = mtcptr->lite[1] + mtcptr->beam[1] + mtcptr->meas[1];
-  cmdLJ(arrLiteBeam_Pulse,ii,jj);
+  cmdpauseLJ(arrLiteBeam_Pulse,ii,jj,kk); 
 
   ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1];
   jj = mtcptr->lite[1] + mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] ;
-  cmdLJ(arrLiteBeam_BKG_Pulse,ii,jj);
+  cmdpauseLJ(arrLiteBeam_BKG_Pulse,ii,jj,kk); 
   
   ii = mtcptr->kck[0] + mtcptr->pulse_e[7] + mtcptr->pulse_e[3] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0]; // just beam OFF no measuring (beam OFF)
   jj = mtcptr->kck[1] + mtcptr->pulse_c[7] + mtcptr->pulse_c[3] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  cmdLJ(arrBeamOff_Pulse,   ii,jj);
+  cmdpauseLJ(arrBeamOff_Pulse,   ii,jj,kk); 
 
   ii = mtcptr->kck[0] + mtcptr->bkg[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[6] 
        + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[0];
   jj = mtcptr->kck[1] + mtcptr->bkg[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[6] 
        + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[0];
-  cmdLJ(arrBeamOff_BKG_Pulse, ii,jj);
+  cmdpauseLJ(arrBeamOff_BKG_Pulse, ii,jj,kk); 
 
   ii = mtcptr->trig[0] + mtcptr->beam[0] + mtcptr->pulse_e[8] 
        + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];   // trigger cycle (beam ON)
@@ -708,87 +744,87 @@ void loadArrays(){
   /*if (mtcptr->tdt.us < 16) mtcptr->tdt.us=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
   else if (mtcptr->tdt.us > 4080)mtcptr->tdt.us=4080;
   kk = (uint8) (mtcptr->tdt.us/16);*/
-  cmdLJ(arrTrigBeam_Pulse, ii,jj);
+  cmdpauseLJ(arrTrigBeam_Pulse, ii,jj,kk); 
 
   ii = mtcptr->trig[0] + mtcptr->beam[0] + mtcptr->bkg[0] + mtcptr->kck[0]
        + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[6] + mtcptr->pulse_e[5] + mtcptr->pulse_e[3];
   jj = mtcptr->trig[1] + mtcptr->beam[1] + mtcptr->bkg[1] + mtcptr->kck[1]
        + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[6] + mtcptr->pulse_c[5] + mtcptr->pulse_c[3];
-  cmdLJ(arrTrigBeam_BKG_Pulse, ii,jj);
+  cmdpauseLJ(arrTrigBeam_BKG_Pulse, ii,jj,kk); 
 
   ii = mtcptr->trig[0] + mtcptr->kck[0] + mtcptr->pulse_e[8] 
        + mtcptr->pulse_e[5] + mtcptr->pulse_e[3] + mtcptr->pulse_e[0];   // trigger cycle (beam OFF)
   jj = mtcptr->trig[1] + mtcptr->kck[1] + mtcptr->pulse_c[8] 
        + mtcptr->pulse_c[5] + mtcptr->pulse_c[3] + mtcptr->pulse_c[0];
-  cmdLJ(arrTrig_Pulse, ii,jj);
+  cmdpauseLJ(arrTrig_Pulse, ii,jj,kk); 
 
   ii = mtcptr->trig[0] + mtcptr->bkg[0] + mtcptr->pulse_e[6] + mtcptr->pulse_e[3] + mtcptr->pulse_e[1];
   jj = mtcptr->trig[1] + mtcptr->bkg[1] + mtcptr->pulse_c[6] + mtcptr->pulse_c[3] + mtcptr->pulse_c[1];
-  cmdLJ(arrTrig_BKG_Pulse, ii,jj);
+  cmdpauseLJ(arrTrig_BKG_Pulse, ii,jj,kk); 
 
   ii = mtcptr->pulse_e[8] + mtcptr->pulse_e[4] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2] + mtcptr->pulse_e[1] + mtcptr->pulse_e[0];
   jj = mtcptr->pulse_c[8] + mtcptr->pulse_c[4] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2] + mtcptr->pulse_c[1] + mtcptr->pulse_c[0];
-  cmdLJ(arrAllOff_Pulse, ii,jj);                // turn all labjack channels off
+  cmdpauseLJ(arrAllOff_Pulse, ii,jj,kk);                // turn all labjack channels off
 
   ii = mtcptr->bkg[0] + mtcptr->pulse_e[8] + mtcptr->pulse_e[7] + mtcptr->pulse_e[3] + mtcptr->pulse_e[2];
   jj = mtcptr->bkg[1] + mtcptr->pulse_c[8] + mtcptr->pulse_c[7] + mtcptr->pulse_c[3] + mtcptr->pulse_c[2];
-  cmdLJ(arrAllOff_BKG_Pulse, ii,jj);            // turn all labjack channels off except background
+  cmdpauseLJ(arrAllOff_BKG_Pulse, ii,jj,kk);            // turn all labjack channels off except background
 
   /** Arrays for sending only control signals **/
  //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
   ii = mtcptr->mtc[0] + mtcptr->kck[0];     // move mtc with no beam  (beamOFF)
   jj = mtcptr->mtc[1] + mtcptr->kck[1];
   printf("%i,%i,%i,%i \n",mtcptr->mtc[0],mtcptr->mtc[1],mtcptr->kck[0],mtcptr->kck[1]);
-  cmdLJ(arrMTC,ii,jj);
+  cmdpauseLJ(arrMTC,ii,jj,kk); 
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
-  cmdLJ(arrMTC_BKG,ii,jj);
+  cmdpauseLJ(arrMTC_BKG,ii,jj,kk); 
   
   ii = mtcptr->beam[0];                     // beam ON
   jj = mtcptr->beam[1];
-  cmdLJ(arrBeamOn,ii,jj);
+  cmdpauseLJ(arrBeamOn,ii,jj,kk); 
   ii += mtcptr->bkg[0] + mtcptr->kck[0];
   jj += mtcptr->bkg[1] + mtcptr->kck[1];
-  cmdLJ(arrBeamOn_BKG,ii,jj);
+  cmdpauseLJ(arrBeamOn_BKG,ii,jj,kk); 
 
   ii = mtcptr->beam[0] + mtcptr->meas[0];   // measuring with beam   (beam ON)
   jj = mtcptr->beam[1] + mtcptr->meas[1];
-  cmdLJ(arrBeamOnMeas,ii,jj);
+  cmdpauseLJ(arrBeamOnMeas,ii,jj,kk); 
   ii += mtcptr->bkg[0] + mtcptr->kck[0];
   jj += mtcptr->bkg[1] + mtcptr->kck[1];
-  cmdLJ(arrBeamOnMeas_BKG,ii,jj);
+  cmdpauseLJ(arrBeamOnMeas_BKG,ii,jj,kk); 
 
   ii = mtcptr->meas[0] + mtcptr->kck[0];    // measuring with no beam (beamOFF)
   jj = mtcptr->meas[1] + mtcptr->kck[1];
-  cmdLJ(arrBeamOffMeas,ii,jj);
+  cmdpauseLJ(arrBeamOffMeas,ii,jj,kk); 
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
-  cmdLJ(arrBeamOffMeas_BKG,ii,jj);
+  cmdpauseLJ(arrBeamOffMeas_BKG,ii,jj,kk); 
   
   ii = mtcptr->lite[0] + mtcptr->kck[0];    // laser lite with measuring but no beam  (beam OFF)
   jj = mtcptr->lite[1] + mtcptr->kck[1];
   //  ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->meas[0];    // laser lite with measuring but no beam  (beam OFF)
   //  jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->meas[1];
-  cmdLJ(arrLite,ii,jj);
+  cmdpauseLJ(arrLite,ii,jj,kk); 
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
-  cmdLJ(arrLite_BKG,ii,jj);
+  cmdpauseLJ(arrLite_BKG,ii,jj,kk); 
   
   ii = mtcptr->lite[0] + mtcptr->beam[0];    // laser lite with measuring and with beam  (beam ON)
   jj = mtcptr->lite[1] + mtcptr->beam[1];
   //  ii = mtcptr->lite[0] + mtcptr->beam[0] + mtcptr->meas[0];    // laser lite with measuring and with beam  (beam ON)
   //  jj = mtcptr->lite[1] + mtcptr->beam[1] + mtcptr->meas[1];
-  cmdLJ(arrLiteBeam,ii,jj);
+  cmdpauseLJ(arrLiteBeam,ii,jj,kk); 
   ii += mtcptr->bkg[0] + mtcptr->kck[0];
   jj += mtcptr->bkg[1] + mtcptr->kck[1];
-  cmdLJ(arrLiteBeam_BKG,ii,jj);
+  cmdpauseLJ(arrLiteBeam_BKG,ii,jj,kk); 
   
   ii = mtcptr->kck[0];                      // just beam OFF no measuring (beam OFF)
   jj = mtcptr->kck[1];
-  cmdLJ(arrBeamOff,   ii,jj);
+  cmdpauseLJ(arrBeamOff,   ii,jj,kk); 
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
-  cmdLJ(arrBeamOff_BKG,   ii,jj);
+  cmdpauseLJ(arrBeamOff_BKG,   ii,jj,kk); 
 
   ii = mtcptr->trig[0] + mtcptr->beam[0];   // trigger cycle (beam ON)
   jj = mtcptr->trig[1] + mtcptr->beam[1];
@@ -809,10 +845,10 @@ void loadArrays(){
 
   ii=0;
   jj=0;
-  cmdLJ(arrAllOff, ii,jj);                // turn all labjack channels off
+  cmdpauseLJ(arrAllOff, ii,jj,kk);                // turn all labjack channels off
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
-  cmdLJ(arrAllOff_BKG, ii,jj);            // turn all labjack channels off except background
+  cmdpauseLJ(arrAllOff_BKG, ii,jj,kk);            // turn all labjack channels off except background
     
   return;
 
@@ -937,7 +973,7 @@ struct sec_us time_In_ms (struct sec_us xx) {
 }
 		   
 /*********************************************************************************/
-/*void beginTimer(struct sec_us xx){
+void beginTimer(struct sec_us xx){
   struct timespec nt;
   
   tt.it_interval.tv_sec = 0;
@@ -952,7 +988,7 @@ struct sec_us time_In_ms (struct sec_us xx) {
    Set a never ending loop that contains nanosleep to sleep in 1 ms intervals
    When the timer ends, stopTimer changes endwait to 0 which ends the loop
 */
- /* endwait=1;
+  endwait=1;
   nt.tv_sec=0;
   nt.tv_nsec=1000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
@@ -965,15 +1001,15 @@ struct sec_us time_In_ms (struct sec_us xx) {
   }
 
   return;
-}*/
+}
 
 /*********************************************************************************/
-void beginTimer(struct sec_us xx){
+/*void beginTimer(struct sec_us xx){
   //for trouble shooting code fixed time witdh sections
   usleep(500000);
 
   return;
-}
+}*/
 /*********************************************************************************/
 void beginTimerDiff(struct sec_us xx, struct sec_us yy){
   usleep(xx.ms*1000);
@@ -995,7 +1031,7 @@ void beginTimerDiff(struct sec_us xx, struct sec_us yy){
 
   setitimer(ITIMER_REAL, &tt, 0);       // start timer
   signal (SIGALRM, stopTimer);          // function that handles the alarm
-/* 
+*//* 
    Now wait for it to time out or get another signal
    Set a never ending loop that contains nanosleep to sleep in 1 ms intervals
    When the timer ends, stopTimer changes endwait to 0 which ends the loop

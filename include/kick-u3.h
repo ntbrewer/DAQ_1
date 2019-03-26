@@ -35,13 +35,13 @@ struct mtc_par {
   int cyclesBkg;                   // number of background cycles
   int cycleCurrent;                // cycle currently running
   int trigDT;                      // width of trigger signal
-  uint8 meas[2];
-  uint8 beam[2];
-  uint8 mtc[2];
-  uint8 lite[2];
-  uint8 trig[2];
-  uint8 kck[2];
-  uint8 bkg[2];
+  uint8 meas[4];
+  uint8 beam[4];
+  uint8 mtc[4];
+  uint8 lite[4];
+  uint8 trig[4];
+  uint8 kck[4];
+  uint8 bkg[4];
   uint8 pulse_e[9];                  // vector storing output code word channels if eio
   uint8 pulse_c[9];                  // vector storing output code word channels if cio
   pid_t pid;                       // process ID
