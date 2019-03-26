@@ -1043,7 +1043,7 @@ int readConf() {
     //    mtcptr->xx.ms = t0;
     mtcptr->lj = lj;
     switch (ii) {
-          case -1:
+     case -1:
       mtcBreak = findLJchanFIO(ch0);
       mtcFault = findLJchanFIO(ch1);
       break;
@@ -1108,13 +1108,14 @@ int readConf() {
   Setup pause times and labjack
 */
   mtcptr->pon.ms = 0;                        // set default pause values to 0
-  mtcptr->pon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
+  mtcptr->pon= time_In_ms(mtcptr->pon);      // set sec and us values in structure
 
   jj=0;
   mtcptr->lj = lj;
   mtcptr->ljnum = ljnum;                     // store labjack index no. for relation to specific lj calibration
+  //printf ("conf values: %i %i %i %i %i \n" , mtcptr->pon.ms  ,  mtcptr->lon.ms  ,  mtcptr->tmove.ms  ,  mtcptr->boff.ms  ,  mtcptr->bon.ms );
   ljmax=labjackSetup(lj,jj,ljnum);           // set up the labjack of the first one found
-
+  //raise(SIGINT);
   return(ljmax);
 }
 
@@ -1217,6 +1218,7 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
   error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
+  
   if (error < num){                      // found at ANL VANDLE run 2015
     if (error == 0) printf("Feedback setup error : write failed\n");
     else printf("Feedback setup error : did not write all of the buffer\n");

@@ -137,7 +137,7 @@ void clearParameters(){
   mtcptr->lon.ms=0;                         // clear lite calibrator time
   mtcptr->lon = time_In_ms(mtcptr->lon);
   mtcptr->pon.ms=0;                         // clear pause time
-  mtcptr->pon = time_In_ms(mtcptr->lon);
+  mtcptr->pon = time_In_ms(mtcptr->pon);
   
   mtcptr->beammeas = 0;    // always with takeaway
   mtcptr->measbeam = 0;    // option for normal and pause
