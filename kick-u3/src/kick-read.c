@@ -422,14 +422,15 @@ void menu(){
   else printf ("%c[1m Cycling OFF %c[0m   \n",ESC,ESC);
 
   printf ("9 - reset mtc faults  |");
+
   if (mtcptr->tapeFault) printf ("%c[1m  TRUE - TapeFault error%c[0m |",ESC,ESC);
   else printf (" FALSE - TapeFault error |");
   if (!mtcptr->tapeFault && !mtcptr->tapeBreak) printf ("%c[1m MTC OK %c[0m    \n",ESC,ESC);
   else printf ("%c[1m MTC ERROR %c[0m  \n",ESC,ESC);
 
   printf ("10- laser calib on    |");
-  if (mtcptr->tapeBreak) printf ("%c[1m  TRUE - TapeRead error%c[0m | \n",ESC,ESC);
-  else printf (" FALSE - TapeRead error  |   \n");
+  if (mtcptr->tapeBreak) printf ("%c[1m  TRUE - TapeBreak error%c[0m | \n",ESC,ESC);
+  else printf (" FALSE - TapeBreak error  |   \n");
 
   printf ("11- all LJ chan OFF   |                         |                  \n");
   printf ("99- help              | LabJack SN: %8li   | pid: %6i            \n", mtcptr->lj, mtcptr->pid);

@@ -226,6 +226,8 @@ int main(int argc, char **argv){
     case 6:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 12;                     // report status for gtk monitor program
+      mtcptr->tapeBreak = readMTC(mtcBreak);
+      mtcptr->tapeFault = readMTC(mtcFault);
       writeLJ(mtcptr->ljh, arrMTC, 14);         // move tape
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
@@ -308,7 +310,7 @@ int modeData(){
     beginTimer(mtcptr->pon);
     writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -333,7 +335,7 @@ int modeData(){
     writeLJ(mtcptr->ljh, arrMTC, 14);
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
    printf ("normal tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
   }
@@ -378,7 +380,7 @@ int modeData(){
   writeLJ(mtcptr->ljh, arrMTC, 14);                 // mtc on = only tape movement in takeaway, common in all modes;
    printf ("first  tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
   beginTimer(mtcptr->tmove);
-  mtcptr->tapeFault = readMTC(mtcBreak);
+  mtcptr->tapeBreak = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
   if (mtcptr->numMove == 2){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
@@ -387,7 +389,7 @@ int modeData(){
     usleep(10000);
     writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
    printf ("second tape move %i, %i \n",arrMTC[12], arrMTC[13]); 
   }
@@ -400,11 +402,12 @@ int modeData(){
 bool readMTC(long int kk){
   long int ii=0, jj=0;
 
-  if (mtcptr->tapeFault) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
-  if (mtcptr->tapeBreak) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
+  //if (mtcptr->tapeFault) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
+  //if (mtcptr->tapeBreak) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
   jj = eDI(mtcptr->ljh,1,kk,&ii);             // read labjack channel kk
+  printf(" ii(0) = %li, chan - kk = %li, read - jj=%li \n",ii,kk,jj);
   if (jj != 0) mtcptr->com2 = 1;              // on read error return 1 = TRUE (a tape read fault)
-  return(ii);                                 // good read of no signal so return 0 = FALSE (no tape fault)
+  return(!ii);                                 // good read of no signal so return 0 = FALSE (no tape fault)
 }
 /*********************************************************************************
 bool readMTC(){
@@ -463,7 +466,7 @@ int modeBackground(){
     beginTimer(mtcptr->pon);
     writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -486,11 +489,11 @@ int modeBackground(){
 */
 /* --------------- Mode option begin ------------------------------ */
   if (mtcptr->normal){                           // mtc on for normal mode; skip it for takeaway
-    //    printf("MTC on for normal \n");  
+    printf("MTC on for normal \n");  
     mtcptr->gtkstat = 4;                        // report status for gtk monitor program
     writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
   }
   if (mtcptr->onoff == 0) return (0);         // check if new commands have come in
@@ -532,7 +535,7 @@ int modeBackground(){
   mtcptr->gtkstat = 7;                        // report status for gtk monitor program
   writeLJ(mtcptr->ljh, arrMTC_BKG, 14);         // mtc on = only tape movement in takeaway, common in all modes
   beginTimer(mtcptr->tmove);
-  mtcptr->tapeFault = readMTC(mtcBreak);
+  mtcptr->tapeBreak = readMTC(mtcBreak);
   mtcptr->tapeFault = readMTC(mtcFault);
   if (mtcptr->numMove == 2){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
@@ -541,7 +544,7 @@ int modeBackground(){
     usleep(10000);
     writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
     beginTimer(mtcptr->tmove);
-    mtcptr->tapeFault = readMTC(mtcBreak);
+    mtcptr->tapeBreak = readMTC(mtcBreak);
     mtcptr->tapeFault = readMTC(mtcFault);
   }
 /* --------------- Mode option end ------------------------------ */  
