@@ -407,7 +407,7 @@ bool readMTC(long int kk){
   jj = eDI(mtcptr->ljh,1,kk,&ii);             // read labjack channel kk
   printf(" ii(0) = %li, chan - kk = %li, read - jj=%li \n",ii,kk,jj);
   if (jj != 0) mtcptr->com2 = 1;              // on read error return 1 = TRUE (a tape read fault)
-  return(!ii);                                 // good read of no signal so return 0 = FALSE (no tape fault)
+  return(ii);                                 // good read of no signal so return 0 = FALSE (no tape fault)
 }
 /*********************************************************************************
 bool readMTC(){
