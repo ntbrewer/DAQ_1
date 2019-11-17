@@ -208,7 +208,7 @@ int main(int argc, char **argv){
     case 3:
       mtcptr->onoff = 0;                        // beam on
       mtcptr->gtkstat = 11;                     // report status for gtk monitor program
-      writeLJ(mtcptr->ljh, arrBeamOn, 14);      // all LJ channels off
+      writeLJ(mtcptr->ljh, arrAllOff, 14);      // all LJ channels off
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 4:
@@ -556,9 +556,9 @@ void loadArrays(){
   uint8 ii=0,jj=0,kk=0;
 
   //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
-  ii = mtcptr->mtc[0] + mtcptr->kck[0] + mtcptr->beam[2]        // move mtc with no beam  (beamOFF)
+  ii = mtcptr->mtc[0] + mtcptr->kck[0]        // move mtc with no beam  (beamOFF)
        + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2]; //enable meas,bkg,lite all OFF
-  jj = mtcptr->mtc[1] + mtcptr->kck[1] + mtcptr->beam[3]
+  jj = mtcptr->mtc[1] + mtcptr->kck[1]
        + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3];
   cmdLJ(arrMTC,ii,jj);
   ii += mtcptr->bkg[0] - mtcptr->bkg[2];
@@ -570,11 +570,8 @@ void loadArrays(){
   jj = mtcptr->beam[1]
 	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3]; 
   cmdLJ(arrBeamOn,ii,jj);
-//  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; // bkg on kick on?
-//  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; // bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; // bkg on kick on?
+  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
   cmdLJ(arrBeamOn_BKG,ii,jj);
 
   ii = mtcptr->beam[0] + mtcptr->meas[0]   // measuring with beam   (beam ON)
@@ -582,24 +579,22 @@ void loadArrays(){
   jj = mtcptr->beam[1] + mtcptr->meas[1]
 	+ mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
   cmdLJ(arrBeamOnMeas,ii,jj);
-//  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON and kick ON? 
-//  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON and kick ON? 
+  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
   cmdLJ(arrBeamOnMeas_BKG,ii,jj);
 
-  ii = mtcptr->meas[0] + mtcptr->kck[0] + mtcptr->beam[2]    // measuring with no beam (beamOFF)
+  ii = mtcptr->meas[0] + mtcptr->kck[0]    // measuring with no beam (beamOFF)
        + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //bkg,laser,mtc all OFF
-  jj = mtcptr->meas[1] + mtcptr->kck[1] + mtcptr->beam[3]
+  jj = mtcptr->meas[1] + mtcptr->kck[1]
        + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
   cmdLJ(arrBeamOffMeas,ii,jj);
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
+  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on, meas on?
   jj += mtcptr->bkg[1] - mtcptr->bkg[3];
   cmdLJ(arrBeamOffMeas_BKG,ii,jj);
   
-  ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->beam[2]   // laser lite without measuring but no beam  (beam OFF)
-       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas,bkg,mtc all OFF
-  jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->beam[3]
+  ii = mtcptr->lite[0] + mtcptr->kck[0]    // laser lite with measuring but no beam  (beam OFF)
+       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas??,bkg,mtc all OFF
+  jj = mtcptr->lite[1] + mtcptr->kck[1]
        + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->mtc[3];
   cmdLJ(arrLite,ii,jj);
 
@@ -607,21 +602,19 @@ void loadArrays(){
   jj += mtcptr->bkg[1] - mtcptr->bkg[3];
   cmdLJ(arrLite_BKG,ii,jj);
 
-  ii = mtcptr->lite[0] + mtcptr->beam[0]    // laser lite without measuring and with beam  (beam ON)
-       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas,bkg,mtc all OFF
+  ii = mtcptr->lite[0] + mtcptr->beam[0]    // laser lite with measuring and with beam  (beam ON)
+       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas??,bkg,mtc all OFF
   jj = mtcptr->lite[1] + mtcptr->beam[1]
        + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->mtc[3];
   cmdLJ(arrLiteBeam,ii,jj);
 
-//  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg,kick? ON
-//  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg,kick?? ON
+  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
   cmdLJ(arrLiteBeam_BKG,ii,jj);
   
-  ii = mtcptr->kck[0] + mtcptr->beam[2]                       // just beam OFF no measuring (beam OFF)
+  ii = mtcptr->kck[0]                      // just beam OFF no measuring (beam OFF)
         + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->kck[1] + mtcptr->beam[3]
+  jj = mtcptr->kck[1]
 	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
   cmdLJ(arrBeamOff,   ii,jj);
   ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //add bkg on
@@ -637,15 +630,13 @@ void loadArrays(){
   kk = (uint8) (mtcptr->trigDT/16);
   cmdpauseLJ(arrTrigBeam, ii,jj,kk);
 
-//  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON kick beam ON?
-//  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON kick beam ON??
+  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
   cmdpauseLJ(arrTrigBeam_BKG, ii,jj,kk);
 
-  ii = mtcptr->trig[0] + mtcptr->kck[0] + mtcptr->beam[2]  // trigger cycle (beam OFF)
+  ii = mtcptr->trig[0] + mtcptr->kck[0]   // trigger cycle (beam OFF)
 	+ mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->trig[1] + mtcptr->kck[1] + mtcptr->beam[3]
+  jj = mtcptr->trig[1] + mtcptr->kck[1]
 	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
   cmdpauseLJ(arrTrig, ii,jj,kk);
   ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //bkg ON
@@ -1070,42 +1061,42 @@ int readConf() {
      case 2:
       mtcptr->bkg[0] = findLJchanEIO(ch0);            // bkg channel
       mtcptr->bkg[1] = findLJchanCIO(ch0);            // beam ON in cio
-      mtcptr->bkg[2] = findLJchanEIO(ch1);           // bkg channel
-      mtcptr->bkg[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->bkg[2] += findLJchanEIO(ch1);           // bkg channel
+      mtcptr->bkg[3] += findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 3:
       mtcptr->kck[0] = findLJchanEIO(ch0);            // kicker values
       mtcptr->kck[1] = findLJchanCIO(ch0);            // beam ON in cio
-      mtcptr->kck[2] = findLJchanEIO(ch1);           // kicker values
-      mtcptr->kck[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->kck[0] += findLJchanEIO(ch1);           // kicker values
+      mtcptr->kck[1] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->boff.ms = t0;                      // load ms times into structure
       mtcptr->boff = time_In_ms(mtcptr->boff);   // set sec and us values in structure
       break;
     case 4:
       mtcptr->mtc[0] = findLJchanEIO(ch0);            // MTC move values
       mtcptr->mtc[1] = findLJchanCIO(ch0);           // beam ON in cio
-      mtcptr->mtc[2] = findLJchanEIO(ch1);
-      mtcptr->mtc[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->mtc[2] += findLJchanEIO(ch1);
+      mtcptr->mtc[3] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->tmove.ms = t0;
       mtcptr->tmove= time_In_ms(mtcptr->tmove);  // set sec and us values in structure
       break;
     case 5:
       mtcptr->trig[0] = findLJchanEIO(ch0);            // trig channel
       mtcptr->trig[1] = findLJchanCIO(ch0);           // beam ON in cio
-      mtcptr->trig[2] = findLJchanEIO(ch1);            // trig channel
-      mtcptr->trig[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->trig[2] += findLJchanEIO(ch1);            // trig channel
+      mtcptr->trig[3] += findLJchanCIO(ch1);           // beam ON in cio
       break;
     case 6:
       mtcptr->beam[0] = findLJchanEIO(ch0);           // beam ON in eio
       mtcptr->beam[1] = findLJchanCIO(ch0);           // beam ON in cio
-      mtcptr->beam[2] = findLJchanEIO(ch1);          // beam OFF in eio
-      mtcptr->beam[3] = findLJchanCIO(ch1);          // beam OFF in cio
+      mtcptr->beam[2] += findLJchanEIO(ch1);          // beam OFF in eio
+      mtcptr->beam[3] += findLJchanCIO(ch1);          // beam OFF in cio
       break;
      case 7:
       mtcptr->lite[0] = findLJchanEIO(ch0);           // laser lite values
       mtcptr->lite[1] = findLJchanCIO(ch0);           // beam ON in cio
-      mtcptr->lite[2] = findLJchanEIO(ch1);
-      mtcptr->lite[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->lite[2] += findLJchanEIO(ch1);
+      mtcptr->lite[3] += findLJchanCIO(ch1);           // beam ON in cio
       mtcptr->lon.ms = t0;
       mtcptr->lon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
       break;

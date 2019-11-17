@@ -93,7 +93,7 @@ int main(int argc, char **argv){
 
     case 11:                   // all LJ off
       mtcptr->onoff = 0;
-      mtcptr->com0 = 3;
+      mtcptr->com0 = 5;
       break;
 
     case 99:                   // help
