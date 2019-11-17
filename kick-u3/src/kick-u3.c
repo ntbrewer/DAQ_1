@@ -30,6 +30,7 @@ long int findLJchan2(char *aaa);  // used by readConf to identify digital input 
 void pulseLaser(HANDLE hu3, long int tcStart, double numPulses);  // used to issue trigger pulses to the laser - fixed at 1 pulse per ms  
 
 /* Arrays that control the cycle   */
+//uint8 arrMTC1[14];         // array of commands sent to labjack for MTC movement
 uint8 arrMTC[14];         // array of commands sent to labjack for MTC movement
 uint8 arrBeamOn[14];      // array of commands sent to labjack for beam ON
 uint8 arrBeamOnMeas[14];  // array of commands sent to labjack for beam on and measuring signal
@@ -156,7 +157,7 @@ int main(int argc, char **argv){
 /*  
   Put control options and switches here
 */
-  arrMTC[11]=0xf0;   // test to view changes
+  //arrMTC[11]=0xf0;   // test to view changes this screwed up ArrMTC!
   sec1.ms=1000;
   sec1 = time_In_ms(sec1);
   printf ("entering loops...\n");
@@ -226,9 +227,15 @@ int main(int argc, char **argv){
     case 6:
       mtcptr->onoff = 0;
       mtcptr->gtkstat = 12;                     // report status for gtk monitor program
+      //printf("ArrMTC test %x\n",arrMTC[12]);
+      writeLJ(mtcptr->ljh, arrMTC, 14);         // move tape
+      //printf("ArrMTC test %i\n",mtcptr->tmove.ms);
+      //beginTimer(mtcptr->tmove);
+      usleep(mtcptr->tmove.ms*1000);
+      writeLJ(mtcptr->ljh, arrBeamOff, 14); 
+      //printf("ArrMTC test post %x\n",arrMTC[12]);
       mtcptr->tapeBreak = readMTC(mtcBreak);
       mtcptr->tapeFault = readMTC(mtcFault);
-      writeLJ(mtcptr->ljh, arrMTC, 14);         // move tape
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
     case 7:
@@ -561,8 +568,10 @@ void loadArrays(){
   jj = mtcptr->mtc[1] + mtcptr->kck[1] + mtcptr->beam[3]
        + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3];
   cmdLJ(arrMTC,ii,jj);
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2];
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+
+
+  ii += mtcptr->bkg[0];// - mtcptr->bkg[2];
+  jj += mtcptr->bkg[1];// - mtcptr->bkg[3];
   cmdLJ(arrMTC_BKG,ii,jj);
   
   ii =  mtcptr->beam[0]                       // beam ON
@@ -652,8 +661,8 @@ void loadArrays(){
   jj += mtcptr->bkg[1] - mtcptr->bkg[3];
   cmdpauseLJ(arrTrig_BKG, ii,jj,kk);
 
-  ii=0;
-  jj=0;
+  ii= mtcptr->kck[0] + mtcptr->beam[2];
+  jj= mtcptr->kck[1] + mtcptr->beam[3];
   cmdLJ(arrAllOff, ii,jj);                // turn all labjack channels off
   ii += mtcptr->bkg[0];
   jj += mtcptr->bkg[1];
@@ -794,7 +803,7 @@ void beginTimer(struct sec_us xx){
 */
   endwait=1;
   nt.tv_sec=0;
-  nt.tv_nsec=1000000;    // sleep and Kwake up and check if any thing has changed every 1 ms
+  nt.tv_nsec=1000000;    // sleep and wake up and check if any thing has changed every 1 ms
   while(endwait){
     nanosleep(&nt,0);
     if (mtcptr->onoff==0) {     // stop timer if set to zero
@@ -1230,7 +1239,7 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
   error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
-  
+  //printf("error message check = %lu\n",error);
   if (error < num){                      // found at ANL VANDLE run 2015
     if (error == 0) printf("Feedback setup error : write failed\n");
     else printf("Feedback setup error : did not write all of the buffer\n");
