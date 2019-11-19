@@ -368,13 +368,13 @@ int modeData(){
     if (mtcptr->laserbeam) {                        // laser with beam on or off AFTER MEASURING
       writeLJ(mtcptr->ljh, arrLiteBeam, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
     }
     else {
       writeLJ(mtcptr->ljh, arrLite, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
     }
    printf ("lasering %i, %i \n",arrLite[12], arrLite[13]); 
@@ -393,7 +393,7 @@ int modeData(){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
     //    writeLJ(mtcptr->ljh, arrAllOff, 14);
     writeLJ(mtcptr->ljh, arrBeamOff, 14);
-    usleep(10000);
+    usleep(50000);
     writeLJ(mtcptr->ljh, arrMTC, 14);
     beginTimer(mtcptr->tmove);
     mtcptr->tapeBreak = readMTC(mtcBreak);
@@ -525,13 +525,13 @@ int modeBackground(){
     if (mtcptr->laserbeam) {                        // laser with beam on or off
       writeLJ(mtcptr->ljh, arrLiteBeam_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
     }
     else {
       writeLJ(mtcptr->ljh, arrLite_BKG, 14);
       usleep(1000);                               // add slight delay between labjack commands
-      pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
+      //pulseLaser(mtcptr->ljh, tcStart, (double) mtcptr->lon.ms);        // issue a pulse at set 1 kHz frequency to trigger the laser
       beginTimer(mtcptr->lon);
     }
   }
@@ -548,7 +548,7 @@ int modeBackground(){
     mtcptr->gtkstat = 8;                        // report status for gtk monitor program
     //    writeLJ(mtcptr->ljh, arrAllOff_BKG, 14);
     writeLJ(mtcptr->ljh, arrBeamOff_BKG, 14);
-    usleep(10000);
+    usleep(50000);
     writeLJ(mtcptr->ljh, arrMTC_BKG, 14);
     beginTimer(mtcptr->tmove);
     mtcptr->tapeBreak = readMTC(mtcBreak);
