@@ -41,6 +41,7 @@ struct mtc_par {
   uint8 lite[4];
   uint8 trig[4];
   uint8 kck[4];
+  uint8 move[4];
   uint8 bkg[4];
   uint8 pulse_e[9];                  // vector storing output code word channels if eio
   uint8 pulse_c[9];                  // vector storing output code word channels if cio
