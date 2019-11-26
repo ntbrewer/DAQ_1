@@ -1610,7 +1610,7 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   count = num;
   
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
-  printoutBody(arr[12],arr[13],arr[14]);
+  printoutBody(arr[12],arr[13],arr[15]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
   error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
   if (error < num){                      // found at ANL VANDLE run 2015
@@ -1690,7 +1690,7 @@ void printoutBody(uint8 ii, uint8 jj, uint8 kk) {
   Write to file
 */
   fprintf (fileKick," %8li  \t   ",(mtcptr->time0));
-  fprintf (fileKick," %x\t%x\t%x\n  ",ii,jj,kk);
+  fprintf (fileKick," %x\t%x\t%x  ",ii,jj,kk);
   /*for (ii=0; ii<degptr->maxchan; ii++){
     fprintf (fileTherm,"\t%0.1lf",degptr->temps[ii].degree);
   }*/
