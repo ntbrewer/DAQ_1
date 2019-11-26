@@ -110,7 +110,7 @@ void writeLJ(HANDLE hu3, uint8 *arr, long int count);
 
 /* Other global variables   */
 int endwait=1;          // used in timer loop (begin and end that's why its global) so we can do nanosleep
-
+struct timeval start, stop;
 /*********************************************************************************/
 /*********************************************************************************/
 int main(int argc, char **argv){
@@ -165,6 +165,8 @@ int main(int argc, char **argv){
   curtime = time(NULL);
   mtcptr->time0 =  curtime;     // program start time ...store in memory
   mtcptr->time1 =  curtime;     // program start time ...store in memory
+  gettimeofday(&start, NULL);
+  gettimeofday(&stop, NULL);
 
   /*  
    Setup arrays and parameters based on starting of the program
@@ -201,6 +203,7 @@ int main(int argc, char **argv){
       cycD = mtcptr->bkgRatio;                            // set ratio after a stop of cycles
       while (mtcptr->onoff){
 	mtcptr->time1 = time(NULL);
+        gettimeofday(&stop, NULL);
 	if (mtcptr->bkgRatio < 0) {                                          // all data
 	  if (mtcptr->normal || mtcptr->takeaway || mtcptr->pause) kk = modeData();
 	  if (kk == 1) {
@@ -1690,7 +1693,8 @@ void printoutBody(uint8 ii, uint8 jj, uint8 kk) {
 /*
   Write to file
 */
-  fprintf (fileKick," %8li  \t   ",(mtcptr->time1-mtcptr->time0)*1000);
+  double msec = (double)(stop.tv_sec - start.tv_sec) * 1000. + (double)(stop.tv_usec - start.tv_usec)/1000.;
+  fprintf (fileKick," %f  \t   ",msec);
   fprintf (fileKick," %x\t%x\t%x  ",ii,jj,kk);
   /*for (ii=0; ii<degptr->maxchan; ii++){
     fprintf (fileTherm,"\t%0.1lf",degptr->temps[ii].degree);
