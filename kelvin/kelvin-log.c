@@ -168,12 +168,12 @@ void printoutBody() {
 /*
   Write to screen
 */
-  printf (" %8li ",(degptr->tim.time1 - degptr->time0));
+  /*printf (" %8li ",(degptr->tim.time1 - degptr->time0));
   for (ii=0; ii<degptr->maxchan; ii++){
     printf ("   %0.1lf  ",degptr->temps[ii].degree);
   }
   printf ("\n");
-
+  */
   return;
 }
 
