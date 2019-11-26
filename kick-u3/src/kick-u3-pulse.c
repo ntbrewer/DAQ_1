@@ -92,6 +92,11 @@ void beginTimer(struct sec_us x);
 void beginTimerDiff(struct sec_us x, struct sec_us y);
 void stopTimer();
 
+void openLogFile();
+void printoutHead();
+void printoutBody(uint8 ii,uint8 jj,uint8 kk); 
+FILE *fileKick;
+char *GetDate();
 /* Gather labjack routines */
 struct labjack {
   HANDLE hand;
@@ -135,9 +140,11 @@ int main(int argc, char **argv){
 */
   clearParameters(); //This sets default width used by readConf();
   clearStats();
-  printf("Read conf file...\n");
-  ljmax = readConf();                          // this routine calls labjackSetup since we allow more than 1 labjack
+  openLogFile();
+  printoutHead();
 
+  ljmax = readConf();                          // this routine calls labjackSetup since we allow more than 1 labjack
+  printf("Successfully read conf file...\n");
   pid = getpid();         // this gets process number of this program
   mtcptr->pid = pid;       // this is the pid number for the SIGALRM signals
   /*  
@@ -307,6 +314,7 @@ int main(int argc, char **argv){
   
   printf(" File closed and file unmapped \n");
 
+  fclose(fileKick);
 /*
  Close USB connection to all labjacks and end program
 */
@@ -1602,6 +1610,7 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   count = num;
   
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
+  printoutBody(arr[12],arr[13],arr[14]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
   error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
   if (error < num){                      // found at ANL VANDLE run 2015
@@ -1628,6 +1637,109 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   return;
 }
 
+/******************************************************************************/
+void openLogFile(){
+
+  long int ii=0, jj=0, kk=0;
+  char file_name[200]="log/kick-", tt[50]="\0";
+/*
+    Build file name out of date and time
+*/
+  sprintf(tt,"%s%c",GetDate(),'\0');
+  jj=0;
+  jj = strlen(tt);
+  ii=0;
+  kk=0;
+  while (ii < jj) {
+    if (isspace(tt[ii]) == 0) tt[kk++] = tt[ii];
+    ii++;
+  }
+  tt[kk]='\0';
+  if (jj > 0) strcat(file_name,tt);
+  strcat(file_name,".log\0");
+/*
+    Open file
+*/
+ if (( fileKick = fopen (file_name,"a+") ) == NULL){
+   printf ("*** File on disk could not be opened \n");
+   exit (EXIT_FAILURE);
+ }
+  printf("Kick signals logfile opened: %s\n",file_name);             
+
+  return;
+}
+
+/******************************************************************************/
+void printoutHead() {
+//  long int ii=0;
+/*
+  Write to file
+*/
+  fprintf (fileKick,"---------------------------------------------------\n");
+  fprintf (fileKick,"  Seconds  \t Bits to EIO (12) \t Bits to CIO (13) ");
+  fprintf (fileKick,"\n---------------------------------------------------\n");
+  fflush(fileKick);
+
+  return;
+}
+
+/******************************************************************************/
+void printoutBody(uint8 ii, uint8 jj, uint8 kk) {
+//  long int ii=0;
+/*
+  Write to file
+*/
+  fprintf (fileKick," %8li  \t   ",(mtcptr->time0));
+  fprintf (fileKick," %x\t%x\t%x\n  ",ii,jj,kk);
+  /*for (ii=0; ii<degptr->maxchan; ii++){
+    fprintf (fileTherm,"\t%0.1lf",degptr->temps[ii].degree);
+  }*/
+  fprintf (fileKick,"\n");
+  fflush(fileKick);
+
+  return;
+}
+/* ********************************************************************* *
+ * char *GetDate()
+ *
+ *  A function that returns the pretty-formatted date/time string.
+ * ********************************************************************* */
+
+char *GetDate() {
+   /*
+    *  Variable type definitions.  Both of these types found in
+    *  <time.h>.
+    */
+    struct tm *timer;
+    time_t    myClock;
+
+   /*
+    *  Get the current clock time.
+    *  Form:  time(time_t *)
+    *  Stores the current clock time in the time_t pointer.
+    */
+    time((time_t *) &myClock);
+
+   /*
+    *  Set us in the current time zone,
+    *  Form:  tzset()
+    */
+    tzset();
+
+   /*
+    *  Convert the current clock to the current time in our
+    *  local time zone.
+    *  Form:  struct tm *localtime(time_t *)
+    */
+    timer = (struct tm *) localtime((time_t *) &myClock);
+
+   /*
+    *  Now do all the nice formatting.
+    *  Form: char *asctime((struct tm *))
+    */
+
+    return (char *) asctime(timer);
+}
 /*********************************************************************************/
 void clearParameters(){
   
