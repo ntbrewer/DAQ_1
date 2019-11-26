@@ -1690,7 +1690,7 @@ void printoutBody(uint8 ii, uint8 jj, uint8 kk) {
 /*
   Write to file
 */
-  fprintf (fileKick," %8li  \t   ",(mtcptr->time0));
+  fprintf (fileKick," %8li  \t   ",(mtcptr->time1-mtcptr->time0)*1000);
   fprintf (fileKick," %x\t%x\t%x  ",ii,jj,kk);
   /*for (ii=0; ii<degptr->maxchan; ii++){
     fprintf (fileTherm,"\t%0.1lf",degptr->temps[ii].degree);
