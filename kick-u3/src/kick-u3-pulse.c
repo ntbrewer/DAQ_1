@@ -1612,7 +1612,8 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
   printoutBody(arr[12],arr[13],arr[15]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
-  error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
+  error = num;
+  //error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
   if (error < num){                      // found at ANL VANDLE run 2015
     if (error == 0) printf("Feedback setup error : write failed\n");
     else printf("Feedback setup error : did not write all of the buffer\n");
