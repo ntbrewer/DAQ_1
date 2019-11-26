@@ -1693,6 +1693,8 @@ void printoutBody(uint8 ii, uint8 jj, uint8 kk) {
 /*
   Write to file
 */
+
+  gettimeofday(&stop, NULL); 
   double msec = (double)(stop.tv_sec - start.tv_sec) * 1000. + (double)(stop.tv_usec - start.tv_usec)/1000.;
   fprintf (fileKick," %f  \t   ",msec);
   fprintf (fileKick," %x\t%x\t%x  ",ii,jj,kk);
