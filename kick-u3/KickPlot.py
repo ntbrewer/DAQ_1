@@ -122,24 +122,33 @@ earr = np.array(edat)
 carr = np.array(cdat)
 #fig = plt.figure()
 #fig.autofmt_xdate()
-
+legList = ['meas On','meas Off', 'bkg On', 'bkg Off', 'kick', 'tape', 'beam On', 'beam Off' , 'tape On', 'tape Off', 'lite On', 'lite Off']
 ax = list(range(0,12))
 #plt.subplots(12,1,sharex='all')
 ax[0] = plt.subplot(12,1,1)
 
 for i in range(0,8):
     ax[i] = plt.subplot(12,1,i+1,sharex=ax[0])
-#    plt.plot(tdat, earr[:,i], '-')
-    plt.legend([str(i)])
-    plt.plot(tdat, earr[:,i], 'ko')
+    plt.plot(tdat, earr[:,-(i+1)], drawstyle='steps-post')
+    plt.plot(tdat, earr[:,-(i+1)], 'ko')
+    plt.legend([legList[i]])
     plt.ylim(-.5,1.5)
 
 for i in range(0,4):
     ax[i] = plt.subplot(12,1,i+9,sharex=ax[0])
-#    plt.plot(tdat, earr[:,i], '-')
-    plt.legend([str(i+8)])
-    plt.plot(tdat, carr[:,i+4], 'bo')
+    #plt.plot(tdat, earr[:,i], '-')
+    plt.plot(tdat, carr[:,-(i+1)], drawstyle='steps-post')
+    plt.plot(tdat, carr[:,-(i+1)], 'bo')
+    plt.legend([legList[i+8]])
     plt.ylim(-.5,1.5)
+
+
+plt.figure()
+plt.plot(earr[:,-1],earr[:,-2],'ko')
+plt.figure()
+plt.plot(earr[:,-3],earr[:,-4],'bo')
+plt.figure()
+plt.plot(earr[:,-7],earr[:,-8],'ro')
 
 plt.show()
 
