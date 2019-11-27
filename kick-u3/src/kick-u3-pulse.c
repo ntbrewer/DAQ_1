@@ -706,8 +706,8 @@ void loadArrays(){
   cmdpauseLJ(arrMTC_Pulse,ii,jj,kk);
 
 
-  ii += mtcptr->bkg[0];// - mtcptr->bkg[2];
-  jj += mtcptr->bkg[1];// - mtcptr->bkg[3];
+  ii += mtcptr->bkg[0] - mtcptr->bkg[2];
+  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
   cmdpauseLJ(arrMTC_BKG_Pulse,ii,jj,kk);
   
   ii =  mtcptr->beam[0]                       // beam ON
