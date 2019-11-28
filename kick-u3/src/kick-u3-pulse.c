@@ -800,8 +800,8 @@ void loadArrays(){
   ii= mtcptr->kck[0] + mtcptr->beam[2];
   jj= mtcptr->kck[1] + mtcptr->beam[3];
   cmdpauseLJ(arrAllOff_Pulse,ii,jj,kk);                // turn all labjack channels off
-  ii += mtcptr->bkg[0];
-  jj += mtcptr->bkg[1];
+  ii += mtcptr->bkg[0] - mtcptr->bkg[2];
+  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
   cmdpauseLJ(arrAllOff_BKG_Pulse,ii,jj,kk);            // turn all labjack channels off except background
     
   ii = mtcptr->move[0] + mtcptr->kck[0];       // move mtc with no beam  (beamOFF)
