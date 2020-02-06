@@ -244,6 +244,11 @@ int main(int argc, char **argv){
       //      nanosleep (100000000);     // 100 ms sleep to allow monitor to update values
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
+    case 8:
+      printf ("Sending Trigger for cycle start \n");
+      writeLJ(mtcptr->ljh, arrTrig, 16);
+      usleep(mtcptr->trigDT);
+      writeLJ(mtcptr->ljh, arrBeamOff, 14); 
     case 100:
       mtcptr->onoff = 0;
       mtcptr->com0 = 100;

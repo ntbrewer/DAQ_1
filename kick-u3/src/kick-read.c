@@ -95,6 +95,11 @@ int main(int argc, char **argv){
       mtcptr->onoff = 0;
       mtcptr->com0 = 5;
       break;
+          
+    case 12:                   // all LJ off
+      mtcptr->onoff = 0;
+      mtcptr->com0 = 8;
+      break;
 
     case 99:                   // help
       help();
@@ -430,9 +435,10 @@ void menu(){
 
   printf ("10- laser calib on    |");
   if (mtcptr->tapeBreak) printf ("%c[1m  TRUE - TapeBreak error%c[0m | \n",ESC,ESC);
-  else printf (" FALSE - TapeBreak error  |   \n");
+  else printf (" FALSE - TapeBreak error |   \n");
 
   printf ("11- all LJ chan OFF   |                         |                  \n");
+  printf ("12- Send trig / start |                         |                  \n");
   printf ("99- help              | LabJack SN: %8li   | pid: %6i            \n", mtcptr->lj, mtcptr->pid);
   printf ("----------------------------------------------------------------------------\n");
   printf ("---- Data:Back Ratio -----  Data  ---- Background --------  Total  ---------\n");
