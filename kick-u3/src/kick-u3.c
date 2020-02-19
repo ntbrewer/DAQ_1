@@ -279,7 +279,7 @@ int main(int argc, char **argv){
 /*
  Close USB connection to all labjacks and end program
 */
-//  fclose(fileTherm);
+
   printf ("Total labjack number %i to close\n",ljmax);
 
   for (kk=0; kk<ljmax; kk++){

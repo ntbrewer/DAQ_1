@@ -327,7 +327,7 @@ int main(int argc, char **argv){
 /*
  Close USB connection to all labjacks and end program
 */
-//  fclose(fileTherm);
+
   printf ("Total labjack number %i to close\n",ljmax);
 
   for (kk=0; kk<ljmax; kk++){
@@ -705,84 +705,84 @@ void loadArrays(){
   uint8 ii=0,jj=0,kk=2; //kk (pulse width) less than 125 for 4000 us kk*32 = us
 
   //  printf("mtc %x   %x \n",mtcptr->mtc[0],mtcptr->mtc[1]);
-  ii = mtcptr->mtc[0] + mtcptr->move[0] + mtcptr->kck[0] + mtcptr->beam[2]        // move mtc with no beam  (beamOFF)
-       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2]; //enable meas,bkg,lite all OFF
-  jj = mtcptr->mtc[1] + mtcptr->move[1] + mtcptr->kck[1] + mtcptr->beam[3]
-       + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3];
+  ii = mtcptr->mtc[0] | mtcptr->move[0] | mtcptr->kck[0] | mtcptr->beam[2]        // move mtc with no beam  (beamOFF)
+       | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2]; //enable meas,bkg,lite all OFF
+  jj = mtcptr->mtc[1] | mtcptr->move[1] | mtcptr->kck[1] | mtcptr->beam[3]
+       | mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3];
   cmdpauseLJ(arrMTC_Pulse,ii,jj,kk);
 
 
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2];
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2];
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrMTC_BKG_Pulse,ii,jj,kk);
   
   ii =  mtcptr->beam[0]                       // beam ON
-        + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
+        | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
   jj = mtcptr->beam[1]
-	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3]; 
+	| mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3]; 
   cmdpauseLJ(arrBeamOn_Pulse,ii,jj,kk);
 //  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; // bkg on kick on?
 //  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
 
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; // bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; // bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrBeamOn_BKG_Pulse,ii,jj,kk);
 
-  ii = mtcptr->beam[0] + mtcptr->meas[0]   // measuring with beam   (beam ON)
-        + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //bkg,laser,mtc all OFF
-  jj = mtcptr->beam[1] + mtcptr->meas[1]
-	+ mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
+  ii = mtcptr->beam[0] | mtcptr->meas[0]   // measuring with beam   (beam ON)
+        | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //bkg,laser,mtc all OFF
+  jj = mtcptr->beam[1] | mtcptr->meas[1]
+	| mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrBeamOnMeas_Pulse,ii,jj,kk);
 //  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON and kick ON? 
 //  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //+bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrBeamOnMeas_BKG_Pulse,ii,jj,kk);
 
-  ii = mtcptr->meas[0] + mtcptr->kck[0] + mtcptr->beam[2]    // measuring with no beam (beamOFF)
-       + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //bkg,laser,mtc all OFF
-  jj = mtcptr->meas[1] + mtcptr->kck[1] + mtcptr->beam[3]
-       + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
+  ii = mtcptr->meas[0] | mtcptr->kck[0] | mtcptr->beam[2]    // measuring with no beam (beamOFF)
+       | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //bkg,laser,mtc all OFF
+  jj = mtcptr->meas[1] | mtcptr->kck[1] | mtcptr->beam[3]
+       | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrBeamOffMeas_Pulse,ii,jj,kk);
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //+bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrBeamOffMeas_BKG_Pulse,ii,jj,kk);
   
-  ii = mtcptr->lite[0] + mtcptr->kck[0] + mtcptr->beam[2]   // laser lite without measuring but no beam  (beam OFF)
-       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas,bkg,mtc all OFF
-  jj = mtcptr->lite[1] + mtcptr->kck[1] + mtcptr->beam[3]
-       + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->mtc[3];
+  ii = mtcptr->lite[0] | mtcptr->kck[0] | mtcptr->beam[2]   // laser lite without measuring but no beam  (beam OFF)
+       | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->mtc[2]; //meas,bkg,mtc all OFF
+  jj = mtcptr->lite[1] | mtcptr->kck[1] | mtcptr->beam[3]
+       | mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrLite_Pulse,ii,jj,kk);
 
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //+bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrLite_BKG_Pulse,ii,jj,kk);
 
-  ii = mtcptr->lite[0] + mtcptr->beam[0]    // laser lite without measuring and with beam  (beam ON)
-       + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->mtc[2]; //meas,bkg,mtc all OFF
-  jj = mtcptr->lite[1] + mtcptr->beam[1]
-       + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->mtc[3];
+  ii = mtcptr->lite[0] | mtcptr->beam[0]    // laser lite without measuring and with beam  (beam ON)
+       | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->mtc[2]; //meas,bkg,mtc all OFF
+  jj = mtcptr->lite[1] | mtcptr->beam[1]
+       | mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrLiteBeam_Pulse,ii,jj,kk);
 
 //  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg,kick? ON
 //  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //+bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrLiteBeam_BKG_Pulse,ii,jj,kk);
   
-  ii = mtcptr->kck[0] + mtcptr->beam[2]                       // just beam OFF no measuring (beam OFF)
-        + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->kck[1] + mtcptr->beam[3]
-	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
+  ii = mtcptr->kck[0] | mtcptr->beam[2]                       // just beam OFF no measuring (beam OFF)
+        | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
+  jj = mtcptr->kck[1] | mtcptr->beam[3]
+	| mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrBeamOff_Pulse,ii,jj,kk);
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //add bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //add bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrBeamOff_BKG_Pulse,ii,jj,kk);
 //--
-  ii = mtcptr->trig[0] + mtcptr->beam[0]   // trigger cycle (beam ON)
-        + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->trig[1] + mtcptr->beam[1]
-	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
+  ii = mtcptr->trig[0] | mtcptr->beam[0]   // trigger cycle (beam ON)
+        | mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
+  jj = mtcptr->trig[1] | mtcptr->beam[1]
+	| mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   /*if (mtcptr->trigDT < 16) mtcptr->trigDT=16;         //ensures trigDt is at least 16 us and less than 4080 ie kk=<255
   else if (mtcptr->trigDT > 4080)mtcptr->trigDT=4080;
   kk = (uint8) (mtcptr->trigDT/16);*/
@@ -790,29 +790,29 @@ void loadArrays(){
 
 //  ii += mtcptr->bkg[0] + mtcptr->kck[0] - mtcptr->bkg[2] - mtcptr->beam[0]; //bkg ON kick beam ON?
 //  jj += mtcptr->bkg[1] + mtcptr->kck[1] - mtcptr->bkg[3] - mtcptr->beam[1];
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //+bkg on
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //+bkg on
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrTrigBeam_BKG_Pulse,ii,jj,kk);
 
-  ii = mtcptr->trig[0] + mtcptr->kck[0] + mtcptr->beam[2]  // trigger cycle (beam OFF)
-	+ mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2] + mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->trig[1] + mtcptr->kck[1] + mtcptr->beam[3]
-	+ mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3] + mtcptr->mtc[3];
+  ii = mtcptr->trig[0] | mtcptr->kck[0] | mtcptr->beam[2]  // trigger cycle (beam OFF)
+	| mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
+  jj = mtcptr->trig[1] | mtcptr->kck[1] | mtcptr->beam[3]
+	| mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrTrig_Pulse,ii,jj,kk);
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2]; //bkg ON
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //bkg ON
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrTrig_BKG_Pulse,ii,jj,kk);
 
-  ii= mtcptr->kck[0] + mtcptr->beam[2];
-  jj= mtcptr->kck[1] + mtcptr->beam[3];
+  ii= mtcptr->kck[0] | mtcptr->beam[2];
+  jj= mtcptr->kck[1] | mtcptr->beam[3];
   cmdpauseLJ(arrAllOff_Pulse,ii,jj,kk);                // turn all labjack channels off
-  ii += mtcptr->bkg[0] - mtcptr->bkg[2];
-  jj += mtcptr->bkg[1] - mtcptr->bkg[3];
+  ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2];
+  jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrAllOff_BKG_Pulse,ii,jj,kk);            // turn all labjack channels off except background
     
-  ii = mtcptr->move[0] + mtcptr->kck[0];       // move mtc with no beam  (beamOFF)
+  ii = mtcptr->move[0] | mtcptr->kck[0];       // move mtc with no beam  (beamOFF)
   //     + mtcptr->meas[2] + mtcptr->bkg[2] + mtcptr->lite[2]; //enable meas,bkg,lite all OFF
-  jj = mtcptr->move[1] + mtcptr->kck[1];// + mtcptr->beam[3]
+  jj = mtcptr->move[1] | mtcptr->kck[1];// + mtcptr->beam[3]
   //     + mtcptr->meas[3] + mtcptr->bkg[3] + mtcptr->lite[3];
   cmdLJ(arrKickMove,ii,jj);
 
@@ -820,8 +820,8 @@ void loadArrays(){
   jj = mtcptr->move[1];
   cmdLJ(arrMove,ii,jj);
 
-  ii = mtcptr->kck[0]; //continue kick
-  jj = mtcptr->kck[1];
+  ii = mtcptr->kck[0] | mtcptr->beam[2]; //continue kick
+  jj = mtcptr->kck[1] | mtcptr->beam[3];
   cmdLJ(arrKick,ii,jj);
 
   ii = 0; //continue to send beam
@@ -1613,16 +1613,16 @@ long int  findLJchanFIO(char *aaa){                   // used to id digital i/o 
 /*********************************************************************************/
 void writeLJ(HANDLE hU3, uint8 arr[], long int num){
   unsigned long int count = 0, error = 0;
-  //  BYTE cycleRead[100];     // used for LJUSB_WriteTO
-  //  unsigned int timeout;    // used for LJUSB_WriteTO
+  //BYTE cycleRead[100];     // used for LJUSB_WriteTO
+  //unsigned int timeout;    // used for LJUSB_WriteTO
 
   count = num;
   
   printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
   printoutBody(arr[12],arr[13],arr[15]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
-  error = num;
-  //error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
+  //error = num;
+  error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
   if (error < num){                      // found at ANL VANDLE run 2015
     if (error == 0) printf("Feedback setup error : write failed\n");
     else printf("Feedback setup error : did not write all of the buffer\n");

@@ -16,7 +16,10 @@ kick-read:$(SOURCES)kick-read.c
 kick-mon:$(SOURCES)kick-mon.c
 	gcc -Wall -o kick-mon $(SOURCES)kick-mon.c `pkg-config --cflags --libs gtk+-3.0`
 
+mwe:$(SOURCES)mwe.c
+	gcc -Wall -o mwe $(INCLUDES)u3.o $(SOURCES)mwe.c -lm -llabjackusb
+
 clean:
-	rm kick-u3 kick-read kick-mon kick-u3-pulse
+	rm kick-u3 kick-read kick-mon kick-u3-pulse mwe
 
 
