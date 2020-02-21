@@ -1297,7 +1297,7 @@ int labjackSetup(long int lj, int num, int ljnum){
   Get calibration information from U6
 */
   printf("getting calib .... ");
-  /*error = getCalibrationInfo(mtcptr->ljh, &caliInfo);
+  error = getCalibrationInfo(mtcptr->ljh, &caliInfo);
 
   if(error != 0){
     printf("\n%li - %s\n",error, errormsg[error]);
@@ -1309,7 +1309,7 @@ int labjackSetup(long int lj, int num, int ljnum){
     printf("got calib \n");
     ljmax++;                          // number of labjacks successfully set up
   }
-  */
+  /**/ // for debugging withou LJ
   printf("Completed setup of LabJack SN %li \n",mtcptr->lj);
 
   return (ljmax);
