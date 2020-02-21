@@ -293,6 +293,7 @@ int main(int argc, char **argv){
     case 8:
       printf ("Sending Trigger for cycle start \n");
       writeLJ(mtcptr->ljh, arrTrig_Pulse, 16);
+      //usleep(32);
       writeLJ(mtcptr->ljh, arrKick, 14); 
       mtcptr->com0 = -1;                        // reset the switch variable to default
       break;
@@ -343,6 +344,7 @@ bool readMTC(long int kk){
 
   if (mtcptr->tapeFault) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
   if (mtcptr->tapeBreak) return (1);          // do not overwrite a previous error on mtcptr->tapeRead
+  //jj = 1;// for debugging 
   jj = eDI(mtcptr->ljh,1,kk,&ii);             // read labjack channel kk
   if (jj != 0) mtcptr->com2 = 1;              // on read error return 1 = TRUE (a tape read fault)
   return(ii);                                 // good read of no signal so return 0 = FALSE (no tape fault)
@@ -794,9 +796,9 @@ void loadArrays(){
   jj = ( jj | mtcptr->bkg[1] ) & ~mtcptr->bkg[3];
   cmdpauseLJ(arrTrigBeam_BKG_Pulse,ii,jj,kk);
 
-  ii = mtcptr->trig[0] | mtcptr->kck[0] | mtcptr->beam[2]  // trigger cycle (beam OFF)
+  ii = mtcptr->trig[0]| mtcptr->kck[0] | mtcptr->beam[2]  // trigger cycle (beam OFF)
 	| mtcptr->meas[2] | mtcptr->bkg[2] | mtcptr->lite[2] | mtcptr->mtc[2]; //meas,bkg,laser,mtc all OFF
-  jj = mtcptr->trig[1] | mtcptr->kck[1] | mtcptr->beam[3]
+  jj = mtcptr->trig[1]| mtcptr->kck[1] | mtcptr->beam[3]
 	| mtcptr->meas[3] | mtcptr->bkg[3] | mtcptr->lite[3] | mtcptr->mtc[3];
   cmdpauseLJ(arrTrig_Pulse,ii,jj,kk);
   ii = ( ii | mtcptr->bkg[0] ) & ~mtcptr->bkg[2]; //bkg ON
@@ -820,8 +822,8 @@ void loadArrays(){
   jj = mtcptr->move[1];
   cmdLJ(arrMove,ii,jj);
 
-  ii = mtcptr->kck[0] | mtcptr->beam[2]; //continue kick
-  jj = mtcptr->kck[1] | mtcptr->beam[3];
+  ii = mtcptr->kck[0]; //continue kick
+  jj = mtcptr->kck[1];
   cmdLJ(arrKick,ii,jj);
 
   ii = 0; //continue to send beam
@@ -1290,11 +1292,12 @@ int labjackSetup(long int lj, int num, int ljnum){
   labj[kk].lj = lj;
   mtcptr->ljh = ljh;                      // file opened...load pointer and use later in channel structure
   mtcptr->lj = lj;                       // file opened...load pointer and use later in channel structure
+  //for debugging without LJ
 /*
   Get calibration information from U6
 */
   printf("getting calib .... ");
-  error = getCalibrationInfo(mtcptr->ljh, &caliInfo);
+  /*error = getCalibrationInfo(mtcptr->ljh, &caliInfo);
 
   if(error != 0){
     printf("\n%li - %s\n",error, errormsg[error]);
@@ -1306,7 +1309,7 @@ int labjackSetup(long int lj, int num, int ljnum){
     printf("got calib \n");
     ljmax++;                          // number of labjacks successfully set up
   }
-
+  */
   printf("Completed setup of LabJack SN %li \n",mtcptr->lj);
 
   return (ljmax);
@@ -1437,13 +1440,13 @@ int readConf() {
       break;
      case 2:
       mtcptr->bkg[0] = findLJchanEIO(ch0);            // bkg channel
-      mtcptr->bkg[1] = findLJchanCIO(ch0);            // beam ON in cio
+      mtcptr->bkg[1] = findLJchanCIO(ch0);            // ON in cio
       mtcptr->bkg[2] = findLJchanEIO(ch1);           // bkg channel
-      mtcptr->bkg[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->bkg[3] = findLJchanCIO(ch1);           // OFF in cio
       break;
     case 3:
       mtcptr->kck[0] = findLJchanEIO(ch0);            // kicker values
-      mtcptr->kck[1] = findLJchanCIO(ch0);            // beam ON in cio
+      mtcptr->kck[1] = findLJchanCIO(ch0);            // ON in cio
       mtcptr->move[0] = findLJchanEIO(ch1);           // send cmd to move tape
       mtcptr->move[1] = findLJchanCIO(ch1);           // same in cio
       mtcptr->boff.ms = t0;                      // load ms times into structure
@@ -1451,17 +1454,17 @@ int readConf() {
       break;
     case 4:
       mtcptr->mtc[0] = findLJchanEIO(ch0);            // MTC move values
-      mtcptr->mtc[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->mtc[1] = findLJchanCIO(ch0);           // ON in cio
       mtcptr->mtc[2] = findLJchanEIO(ch1);
-      mtcptr->mtc[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->mtc[3] = findLJchanCIO(ch1);           // OFF in cio
       mtcptr->tmove.ms = t0;
       mtcptr->tmove= time_In_ms(mtcptr->tmove);  // set sec and us values in structure
       break;
     case 5:
       mtcptr->trig[0] = findLJchanFIO(ch0);            // trig channel
-      mtcptr->trig[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->trig[1] = findLJchanCIO(ch0);           //  ON in cio
       mtcptr->trig[2] = findLJchanFIO(ch1);            // trig channel
-      mtcptr->trig[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->trig[3] = findLJchanCIO(ch1);           //  OFF in cio
       mtcptr->tdt.ms = t0;
       mtcptr->tdt= time_In_ms(mtcptr->tdt);  // set sec and us values in structure
       break;
@@ -1473,9 +1476,9 @@ int readConf() {
       break;
      case 7:
       mtcptr->lite[0] = findLJchanEIO(ch0);           // laser lite values
-      mtcptr->lite[1] = findLJchanCIO(ch0);           // beam ON in cio
+      mtcptr->lite[1] = findLJchanCIO(ch0);           // ON in cio
       mtcptr->lite[2] = findLJchanEIO(ch1);
-      mtcptr->lite[3] = findLJchanCIO(ch1);           // beam ON in cio
+      mtcptr->lite[3] = findLJchanCIO(ch1);           // OFF in cio
       mtcptr->lon.ms = t0;
       mtcptr->lon= time_In_ms(mtcptr->lon);      // set sec and us values in structure
       break;
@@ -1607,7 +1610,7 @@ long int  findLJchanFIO(char *aaa){                   // used to id digital i/o 
   if (strstr(aaa,"fio6\0") != NULL) ii = 6;
   if (strstr(aaa,"fio7\0") != NULL) ii = 7;
 
-  //  printf ("lj cio chan = %x\n",ii);
+  //  printf ("lj fio chan = %x\n",ii);
   return (ii);
 }
 /*********************************************************************************/
@@ -1618,10 +1621,10 @@ void writeLJ(HANDLE hU3, uint8 arr[], long int num){
 
   count = num;
   
-  printf ("Writing to labjack ... 12 = %x   13 = %x  \n",arr[12],arr[13]);
+  printf ("Writing to labjack ... 12 = %x   13 = %x  15 = %x \n",arr[12],arr[13],arr[15]);
   printoutBody(arr[12],arr[13],arr[15]);
   usleep (200);                          // build in a little pause to give LabJack time to recover from last command
-  //error = num;
+  //error = num;                           // for debugging without LJ
   error = LJUSB_Write(hU3, arr, count);  // sleep was needed when all bits were not set!!!  not sure why
   if (error < num){                      // found at ANL VANDLE run 2015
     if (error == 0) printf("Feedback setup error : write failed\n");
@@ -1686,7 +1689,7 @@ void printoutHead() {
   Write to file
 */
   fprintf (fileKick,"---------------------------------------------------\n");
-  fprintf (fileKick,"  Seconds  \t Bits to EIO (12) \t Bits to CIO (13) ");
+  fprintf (fileKick,"  Seconds  \t Bits to EIO (12) \t CIO (13) \t FIO (15)");
   fprintf (fileKick,"\n---------------------------------------------------\n");
   fflush(fileKick);
 
