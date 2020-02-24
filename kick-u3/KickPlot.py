@@ -122,7 +122,7 @@ earr = np.array(edat)
 carr = np.array(cdat)
 #fig = plt.figure()
 #fig.autofmt_xdate()
-legList = ['meas On','meas Off', 'bkg On', 'bkg Off', 'kick', 'tape', 'beam On', 'beam Off' , 'tape On', 'tape Off', 'lite On', 'lite Off']
+legList = ['meas On','meas Off', 'bkg On', 'bkg Off', 'kick', 'beam Off','tape move','tape Off','trig', 'beam On', 'lite On', 'lite Off']
 ax = list(range(0,12))
 #plt.subplots(12,1,sharex='all')
 ax[0] = plt.subplot(12,1,1)
