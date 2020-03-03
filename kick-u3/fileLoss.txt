@@ -1,0 +1,97 @@
+Console history shows over riding of ldf files
+
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls LDF/
+BeamOffNum1-1.ldf    Mo107Run1_6_1_9_a1.ldf  Mo107Test2_6_1_9.ldf
+BeamOffNum1.ldf      Mo107Run2_6_1_9.ldf     Mo107Test3_6_1_9.ldf
+Mo107Run1_6_1_9.ldf  Mo107Run3_6_1_9.ldf     Mo107Test4_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ 
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls
+EvalMo107.py   LJ                 damm.log              mapcal
+EvalMo107.py~  MTAS_beam_monitor  filter.txt            mtasPspmtConfig.txt
+HIS            README             implant_settings.txt  pixie_ldf_c_slim
+LDF            cal.txt            map.txt               pspmtConfig.txt
+LICENSE        cal.txt~           map.txt~              source
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls LDF/
+BeamOffNum1-1.ldf       Mo107Run2_6_1_9.ldf   Mo107Test3_6_1_9.ldf
+BeamOffNum1.ldf         Mo107Run3_6_1_9.ldf   Mo107Test4_6_1_9.ldf
+Mo107Run1_6_1_9.ldf     Mo107Run5_6_1_9.ldf
+Mo107Run1_6_1_9_a1.ldf  Mo107Test2_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ pwd
+/home/pixie16/MTAS2020/ANL01
+[pixie16@memnog ~/MTAS2020/ANL01]$ cd LDF
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ ls
+BeamOffNum1-1.ldf       Mo107Run2_6_1_9.ldf   Mo107Test3_6_1_9.ldf
+BeamOffNum1.ldf         Mo107Run3_6_1_9.ldf   Mo107Test4_6_1_9.ldf
+Mo107Run1_6_1_9.ldf     Mo107Run5_6_1_9.ldf
+Mo107Run1_6_1_9_a1.ldf  Mo107Test2_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ mv Mo107Test2_6_1_9.ldf Mo107Run2_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ mv Mo107Test3_6_1_9.ldf Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ mv Mo107Test4_6_1_9.ldf Mo107Run4_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ ls
+BeamOffNum1-1.ldf  Mo107Run1_6_1_9.ldf     Mo107Run2_6_1_9.ldf  Mo107Run4_6_1_9.ldf
+BeamOffNum1.ldf    Mo107Run1_6_1_9_a1.ldf  Mo107Run3_6_1_9.ldf  Mo107Run5_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ ls -l
+total 6115136
+-rw-rw-r-- 1 pixie16 pixie16  761255376 Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2146926328 Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1651844848 Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  354177456 Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  221991848 Feb 26 20:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  465943616 Feb 26 21:23 Mo107Run3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  661059144 Feb 27 11:28 Mo107Run4_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16      32768 Feb 27 15:08 Mo107Run5_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ ls -lh
+total 5.9G
+-rw-rw-r-- 1 pixie16 pixie16 726M Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2.0G Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1.6G Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 338M Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 212M Feb 26 20:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 445M Feb 26 21:23 Mo107Run3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 631M Feb 27 11:28 Mo107Run4_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  32K Feb 27 15:08 Mo107Run5_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01/LDF]$ cd ../HIS/
+
+from screen checking:
+-rw-rw-r-- 1 pixie16 pixie16  16M Feb 27 07:06 Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ lt LDF/
+total 5.9G
+-rw-rw-r-- 1 pixie16 pixie16 212M Feb 26 20:48 Mo107Test2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 445M Feb 26 21:23 Mo107Test3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1.6G Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 338M Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2.0G Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 726M Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 590M Feb 27 06:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  16M Feb 27 07:06 Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls -lrt LDF/
+total 6089620
+-rw-rw-r-- 1 pixie16 pixie16  221991848 Feb 26 20:48 Mo107Test2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  465943616 Feb 26 21:23 Mo107Test3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1651844848 Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  354177456 Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2146926328 Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  761255376 Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  617630944 Feb 27 06:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16   17272832 Feb 27 07:06 Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls -lrt LDF/
+total 6089812
+-rw-rw-r-- 1 pixie16 pixie16  221991848 Feb 26 20:48 Mo107Test2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  465943616 Feb 26 21:23 Mo107Test3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1651844848 Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  354177456 Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2146926328 Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  761255376 Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  617630944 Feb 27 06:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16   17469440 Feb 27 07:06 Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ ls -lrt LDF/
+total 6090388
+-rw-rw-r-- 1 pixie16 pixie16  221991848 Feb 26 20:48 Mo107Test2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  465943616 Feb 26 21:23 Mo107Test3_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16 1651844848 Feb 27 00:39 Mo107Run1_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16  354177456 Feb 27 01:24 Mo107Run1_6_1_9_a1.ldf
+-rw-rw-r-- 1 pixie16 pixie16 2146926328 Feb 27 05:39 BeamOffNum1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  761255376 Feb 27 05:49 BeamOffNum1-1.ldf
+-rw-rw-r-- 1 pixie16 pixie16  617630944 Feb 27 06:48 Mo107Run2_6_1_9.ldf
+-rw-rw-r-- 1 pixie16 pixie16   18059264 Feb 27 07:06 Mo107Run3_6_1_9.ldf
+[pixie16@memnog ~/MTAS2020/ANL01]$ htop
